@@ -1,4 +1,5 @@
 #include "operators.h"
+#include "omp.h"
 
 #include <cassert>
 
@@ -49,7 +50,9 @@ bool FilterScan::require(SelectInfo info) {
 
 // Copy to result
 void FilterScan::copy2Result(uint64_t id) {
-  for (unsigned cId = 0; cId < input_data_.size(); ++cId)
+  size_t input_data_size = input_data_.size();
+  #pragma omp parallel for
+  for (unsigned cId = 0; cId < input_data_size; ++cId)
     tmp_results_[cId].push_back(input_data_[cId][id]);
   ++result_size_;
 }
