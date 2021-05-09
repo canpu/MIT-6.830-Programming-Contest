@@ -92,7 +92,7 @@ void Relation::loadRelation(const char *file_name) {
 
 // Constructor that loads relation_ from disk
 Relation::Relation(const char *file_name) : owns_memory_(false), size_(0) {
-  loadRelation(file_name);
+    loadRelation(file_name);
 }
 
 // Destructor
