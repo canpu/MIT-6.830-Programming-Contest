@@ -87,11 +87,9 @@ void Relation::loadRelation(const char *file_name) {
     addr += sizeof(size_t);
     this->columns_.resize(numColumns);
     #pragma omp parallel for
-    {
-      for (unsigned i = 0; i < numColumns; ++i) {
-          char *current = addr + size_ * sizeof(uint64_t) * i;
-          this->columns_[i] = (reinterpret_cast<uint64_t *>(current));
-      }
+    for (unsigned i = 0; i < numColumns; ++i) {
+        char *current = addr + size_ * sizeof(uint64_t) * i;
+        this->columns_[i] = (reinterpret_cast<uint64_t *>(current));
     }
 }
 
