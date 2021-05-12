@@ -103,13 +103,15 @@ bool Join::require(SelectInfo info) {
 
 // Copy to result
 void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
-  unsigned rel_col_id = 0;
-  for (unsigned cId = 0; cId < copy_left_data_.size(); ++cId)
-    tmp_results_[rel_col_id++].push_back(copy_left_data_[cId][left_id]);
+    unsigned rel_col_id = 0;
+    #pragma omp parallel for
+    for (unsigned cId = 0; cId < copy_left_data_.size(); ++cId)
+        tmp_results_[rel_col_id++].push_back(copy_left_data_[cId][left_id]);
 
-  for (unsigned cId = 0; cId < copy_right_data_.size(); ++cId)
-    tmp_results_[rel_col_id++].push_back(copy_right_data_[cId][right_id]);
-  ++result_size_;
+    #pragma omp parallel for
+    for (unsigned cId = 0; cId < copy_right_data_.size(); ++cId)
+        tmp_results_[rel_col_id++].push_back(copy_right_data_[cId][right_id]);
+    ++result_size_;
 }
 
 // Run
@@ -163,65 +165,67 @@ void Join::run() {
 
 // Copy to result
 void SelfJoin::copy2Result(uint64_t id) {
-  for (unsigned cId = 0; cId < copy_data_.size(); ++cId)
-    tmp_results_[cId].push_back(copy_data_[cId][id]);
-  ++result_size_;
+    size_t data_size = copy_data_.size();
+    #pragma omp parallel for
+    for (unsigned cId = 0; cId < data_size; ++cId)
+        tmp_results_[cId].push_back(copy_data_[cId][id]);
+    ++result_size_;
 }
 
 // Require a column and add it to results
 bool SelfJoin::require(SelectInfo info) {
-  if (required_IUs_.count(info))
-    return true;
-  if (input_->require(info)) {
-    tmp_results_.emplace_back();
-    required_IUs_.emplace(info);
-    return true;
-  }
-  return false;
+    if (required_IUs_.count(info))
+        return true;
+    if (input_->require(info)) {
+        tmp_results_.emplace_back();
+        required_IUs_.emplace(info);
+        return true;
+    }
+    return false;
 }
 
 // Run
 void SelfJoin::run() {
-  input_->require(p_info_.left);
-  input_->require(p_info_.right);
-  input_->run();
-  input_data_ = input_->getResults();
+    input_->require(p_info_.left);
+    input_->require(p_info_.right);
+    input_->run();
+    input_data_ = input_->getResults();
 
-  for (auto &iu : required_IUs_) {
-    auto id = input_->resolve(iu);
-    copy_data_.emplace_back(input_data_[id]);
-    select_to_result_col_id_.emplace(iu, copy_data_.size() - 1);
-  }
+    for (auto &iu : required_IUs_) {
+        auto id = input_->resolve(iu);
+        copy_data_.emplace_back(input_data_[id]);
+        select_to_result_col_id_.emplace(iu, copy_data_.size() - 1);
+    }
 
-  auto left_col_id = input_->resolve(p_info_.left);
-  auto right_col_id = input_->resolve(p_info_.right);
+    auto left_col_id = input_->resolve(p_info_.left);
+    auto right_col_id = input_->resolve(p_info_.right);
 
-  auto left_col = input_data_[left_col_id];
-  auto right_col = input_data_[right_col_id];
-  for (uint64_t i = 0; i < input_->result_size(); ++i) {
-    if (left_col[i] == right_col[i])
-      copy2Result(i);
-  }
+    auto left_col = input_data_[left_col_id];
+    auto right_col = input_data_[right_col_id];
+    for (uint64_t i = 0; i < input_->result_size(); ++i) {
+        if (left_col[i] == right_col[i])
+            copy2Result(i);
+    }
 }
 
 // Run
 void Checksum::run() {
-  for (auto &sInfo : col_info_) {
-    input_->require(sInfo);
-  }
-  input_->run();
-  auto results = input_->getResults();
+    for (auto &sInfo : col_info_) {
+        input_->require(sInfo);
+    }
+    input_->run();
+    auto results = input_->getResults();
 
-  for (auto &sInfo : col_info_) {
-    auto col_id = input_->resolve(sInfo);
-    auto result_col = results[col_id];
-    uint64_t sum = 0;
-    result_size_ = input_->result_size();
-    for (auto iter = result_col, limit = iter + input_->result_size();
-         iter != limit;
-         ++iter)
-      sum += *iter;
-    check_sums_.push_back(sum);
-  }
+    for (auto &sInfo : col_info_) {
+        auto col_id = input_->resolve(sInfo);
+        auto result_col = results[col_id];
+        uint64_t sum = 0;
+        result_size_ = input_->result_size();
+        for (auto iter = result_col, limit = iter + input_->result_size();
+            iter != limit;
+            ++iter)
+            sum += *iter;
+        check_sums_.push_back(sum);
+    }
 }
 
