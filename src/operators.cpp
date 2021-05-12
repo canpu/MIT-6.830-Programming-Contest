@@ -5,11 +5,13 @@
 
 // Get materialized results
 std::vector<uint64_t *> Operator::getResults() {
-  std::vector<uint64_t *> result_vector;
-  for (auto &c : tmp_results_) {
-    result_vector.push_back(c.data());
-  }
-  return result_vector;
+    size_t data_size = tmp_results_.size();
+    std::vector<uint64_t *> result_vector(data_size);
+    #pragma omp parallel for
+    for (size_t i = 0; i < data_size; ++i) {
+        result_vector[i] = tmp_results_[i].data();
+    }
+    return result_vector;
 }
 
 // Require a column and add it to results
@@ -104,11 +106,9 @@ bool Join::require(SelectInfo info) {
 // Copy to result
 void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
     unsigned rel_col_id = 0;
-    #pragma omp parallel for
     for (unsigned cId = 0; cId < copy_left_data_.size(); ++cId)
         tmp_results_[rel_col_id++].push_back(copy_left_data_[cId][left_id]);
 
-    #pragma omp parallel for
     for (unsigned cId = 0; cId < copy_right_data_.size(); ++cId)
         tmp_results_[rel_col_id++].push_back(copy_right_data_[cId][right_id]);
     ++result_size_;
