@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include "omp.h"
 
 // Stores a relation into a binary file
 void Relation::storeRelation(const std::string &file_name) {
