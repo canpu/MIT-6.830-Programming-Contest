@@ -14,23 +14,23 @@ std::vector<uint64_t *> Operator::getResults() {
 
 // Require a column and add it to results
 bool Scan::require(SelectInfo info) {
-  if (info.binding != relation_binding_)
-    return false;
-  assert(info.col_id < relation_.columns().size());
-  result_columns_.push_back(relation_.columns()[info.col_id]);
-  select_to_result_col_id_[info] = result_columns_.size() - 1;
-  return true;
+    if (info.binding != relation_binding_)
+        return false;
+    assert(info.col_id < relation_.columns().size());
+    result_columns_.push_back(relation_.columns()[info.col_id]);
+    select_to_result_col_id_[info] = result_columns_.size() - 1;
+    return true;
 }
 
 // Run
 void Scan::run() {
-  // Nothing to do
-  result_size_ = relation_.size();
+    // Nothing to do
+    result_size_ = relation_.size();
 }
 
 // Get materialized results
 std::vector<uint64_t *> Scan::getResults() {
-  return result_columns_;
+    return result_columns_;
 }
 
 // Require a column and add it to results
