@@ -8,37 +8,37 @@
 #include "relation.h"
 
 struct SelectInfo {
-  /// Relation id
-  RelationId rel_id;
-  /// Binding for the relation
-  unsigned binding;
-  /// Column id
-  unsigned col_id;
+    /// Relation id
+    RelationId rel_id;
+    /// Binding for the relation
+    unsigned binding;
+    /// Column id
+    unsigned col_id;
 
-  /// The constructor
-  SelectInfo(RelationId rel_id, unsigned b, unsigned col_id)
-      : rel_id(rel_id), binding(b), col_id(col_id) {};
-  /// The constructor if relation id does not matter
-  SelectInfo(unsigned b, unsigned colId) : SelectInfo(-1, b, colId) {};
+    /// The constructor
+    SelectInfo(RelationId rel_id, unsigned b, unsigned col_id)
+        : rel_id(rel_id), binding(b), col_id(col_id) {};
+    /// The constructor if relation id does not matter
+    SelectInfo(unsigned b, unsigned colId) : SelectInfo(-1, b, colId) {};
 
-  /// Equality operator
-  inline bool operator==(const SelectInfo &o) const {
-    return o.rel_id == rel_id && o.binding == binding && o.col_id == col_id;
-  }
-  /// Less Operator
-  inline bool operator<(const SelectInfo &o) const {
-    return binding < o.binding || col_id < o.col_id;
-  }
+    /// Equality operator
+    inline bool operator==(const SelectInfo &o) const {
+        return o.rel_id == rel_id && o.binding == binding && o.col_id == col_id;
+    }
+    /// Less Operator
+    inline bool operator<(const SelectInfo &o) const {
+        return binding < o.binding || col_id < o.col_id;
+    }
 
-  /// Dump text format
-  std::string dumpText();
-  /// Dump SQL
-  std::string dumpSQL(bool add_sum = false);
+    /// Dump text format
+    std::string dumpText();
+    /// Dump SQL
+    std::string dumpSQL(bool add_sum = false);
 
-  /// The delimiter used in our text format
-  static const char delimiter = ' ';
-  /// The delimiter used in SQL
-  constexpr static const char delimiterSQL[] = ", ";
+    /// The delimiter used in our text format
+    static const char delimiter = ' ';
+    /// The delimiter used in SQL
+    constexpr static const char delimiterSQL[] = ", ";
 };
 
 struct FilterInfo {
@@ -72,24 +72,24 @@ static const std::vector<FilterInfo::Comparison> comparisonTypes
      FilterInfo::Comparison::Equal};
 
 struct PredicateInfo {
-  /// Left
-  SelectInfo left;
-  /// Right
-  SelectInfo right;
+    /// Left
+    SelectInfo left;
+    /// Right
+    SelectInfo right;
 
-  /// The constructor
-  PredicateInfo(SelectInfo left, SelectInfo right)
-      : left(left), right(right) {};
+    /// The constructor
+    PredicateInfo(SelectInfo left, SelectInfo right)
+        : left(left), right(right) {};
 
-  /// Dump text format
-  std::string dumpText();
-  /// Dump SQL
-  std::string dumpSQL();
+    /// Dump text format
+    std::string dumpText();
+    /// Dump SQL
+    std::string dumpSQL();
 
-  /// The delimiter used in our text format
-  static const char delimiter = '&';
-  /// The delimiter used in SQL
-  constexpr static const char delimiterSQL[] = " and ";
+    /// The delimiter used in our text format
+    static const char delimiter = '&';
+    /// The delimiter used in SQL
+    constexpr static const char delimiterSQL[] = " and ";
 };
 
 class QueryInfo {

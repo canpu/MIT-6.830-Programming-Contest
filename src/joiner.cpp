@@ -62,9 +62,9 @@ std::unique_ptr<Operator> Joiner::addScan(std::set<unsigned> &used_relations,
         }
     }
     return !filters.empty() ?
-          std::make_unique<FilterScan>(getRelation(info.rel_id), filters)
-                            : std::make_unique<Scan>(getRelation(info.rel_id),
-                                                    info.binding);
+        std::make_unique<FilterScan>(getRelation(info.rel_id), filters)
+                          : std::make_unique<Scan>(getRelation(info.rel_id),
+                                                  info.binding);
 }
 
 // Executes a join query
@@ -88,28 +88,28 @@ std::string Joiner::join(QueryInfo &query) {
         auto &right_info = p_info.right;
 
         switch (analyzeInputOfJoin(used_relations, left_info, right_info)) {
-            case QueryGraphProvides::Left:left = move(root);
-                right = addScan(used_relations, right_info, query);
-                root = std::make_unique<Join>(move(left), move(right), p_info);
-                break;
-            case QueryGraphProvides::Right:
-                left = addScan(used_relations,
-                              left_info,
-                              query);
-                right = move(root);
-                root = std::make_unique<Join>(move(left), move(right), p_info);
-                break;
-            case QueryGraphProvides::Both:
-                // All relations of this join are already used somewhere else in the
-                // query. Thus, we have either a cycle in our join graph or more than
-                // one join predicate per join.
-                root = std::make_unique<SelfJoin>(move(root), p_info);
-                break;
-            case QueryGraphProvides::None:
-                // Process this predicate later when we can connect it to the other
-                // joins. We never have cross products.
-                predicates_copy.push_back(p_info);
-                break;
+          case QueryGraphProvides::Left:left = move(root);
+              right = addScan(used_relations, right_info, query);
+              root = std::make_unique<Join>(move(left), move(right), p_info);
+              break;
+          case QueryGraphProvides::Right:
+              left = addScan(used_relations,
+                            left_info,
+                            query);
+              right = move(root);
+              root = std::make_unique<Join>(move(left), move(right), p_info);
+              break;
+          case QueryGraphProvides::Both:
+              // All relations of this join are already used somewhere else in the
+              // query. Thus, we have either a cycle in our join graph or more than
+              // one join predicate per join.
+              root = std::make_unique<SelfJoin>(move(root), p_info);
+              break;
+          case QueryGraphProvides::None:
+              // Process this predicate later when we can connect it to the other
+              // joins. We never have cross products.
+              predicates_copy.push_back(p_info);
+              break;
         };
     }
 
