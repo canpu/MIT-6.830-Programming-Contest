@@ -84,9 +84,13 @@ void Relation::loadRelation(const char *file_name) {
     addr += sizeof(size_);
     auto numColumns = *reinterpret_cast<size_t *>(addr);
     addr += sizeof(size_t);
-    for (unsigned i = 0; i < numColumns; ++i) {
-        this->columns_.push_back(reinterpret_cast<uint64_t *>(addr));
-        addr += size_ * sizeof(uint64_t);
+    this->columns_.resize(numColumns);
+    #pragma omp parallel for
+    {
+      for (unsigned i = 0; i < numColumns; ++i) {
+          char *current = addr + size_ * sizeof(uint64_t) * i;
+          this->columns_[i] = (reinterpret_cast<uint64_t *>(current));
+      }
     }
 }
 
@@ -98,8 +102,11 @@ Relation::Relation(const char *file_name) : owns_memory_(false), size_(0) {
 // Destructor
 Relation::~Relation() {
     if (owns_memory_) {
-        for (auto c : columns_)
-            delete[] c;
+        size_t num_columns = columns_.size();
+        #pragma omp parallel for {
+          for (size_t i = 0; i < num_columns; ++i)
+              delete[] columns_[i];
+        }
     }
 }
 
