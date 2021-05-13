@@ -73,7 +73,7 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 // Run
 void FilterScan::run() {
     size_t relation_size = relation_.size();
-//    #pragma omp parallel for
+
     for (size_t i = 0; i < relation_size; ++i) {
         bool pass = true;
         for (auto &f : filters_) {
@@ -109,7 +109,6 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
     unsigned rel_col_id = 0;
 
     size_t left_data_size = copy_left_data_.size();
-//    #pragma omp parallel for
     for (unsigned cId = 0; cId < left_data_size; ++cId)
         tmp_results_[cId].push_back(copy_left_data_[cId][left_id]);
 
@@ -172,7 +171,6 @@ void Join::run() {
 // Copy to result
 void SelfJoin::copy2Result(uint64_t id) {
     size_t data_size = copy_data_.size();
-//    #pragma omp parallel for
     for (unsigned cId = 0; cId < data_size; ++cId)
         tmp_results_[cId].push_back(copy_data_[cId][id]);
     ++result_size_;
@@ -227,7 +225,7 @@ void Checksum::run() {
         auto result_col = results[col_id];
         uint64_t sum = 0;
         result_size_ = input_->result_size();
-        
+
         for (auto iter = result_col, limit = iter + input_->result_size();
             iter != limit;
             ++iter)

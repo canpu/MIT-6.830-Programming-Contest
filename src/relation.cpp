@@ -102,7 +102,6 @@ Relation::Relation(const char *file_name) : owns_memory_(false), size_(0) {
 Relation::~Relation() {
     if (owns_memory_) {
         size_t num_columns = columns_.size();
-        #pragma omp parallel for
         for (size_t i = 0; i < num_columns; ++i)
             delete[] columns_[i];
     }
