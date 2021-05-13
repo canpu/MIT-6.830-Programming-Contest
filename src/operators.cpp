@@ -7,7 +7,6 @@
 std::vector<uint64_t *> Operator::getResults() {
     size_t data_size = tmp_results_.size();
     std::vector<uint64_t *> result_vector(data_size);
-    #pragma omp parallel for
     for (size_t i = 0; i < data_size; ++i) {
         result_vector[i] = tmp_results_[i].data();
     }
@@ -78,6 +77,7 @@ void FilterScan::run() {
         bool pass = true;
         for (auto &f : filters_) {
             pass &= applyFilter(i, f);
+            if (!pass) break;
         }
         if (pass)
             copy2Result(i);
