@@ -58,3 +58,8 @@ cmake-build-*
 
 
 
+src/main/harness.cpp
+r1.tbl
+r1.sql
+r1
+src/main/harness.cpp
