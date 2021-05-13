@@ -121,6 +121,8 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 
 // Run
 void Join::run() {
+    // TODO: edit late materialization
+    // TODO: edit to use hash
     left_->require(p_info_.left);
     right_->require(p_info_.right);
     left_->run();
@@ -190,6 +192,8 @@ bool SelfJoin::require(SelectInfo info) {
 
 // Run
 void SelfJoin::run() {
+    // TODO: edit late materialization
+    // TODO: edit to use hash
     input_->require(p_info_.left);
     input_->require(p_info_.right);
     input_->run();

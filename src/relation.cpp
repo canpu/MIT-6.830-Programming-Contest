@@ -98,6 +98,16 @@ Relation::Relation(const char *file_name) : owns_memory_(false), size_(0) {
     loadRelation(file_name);
 }
 
+void Relation::buildHashMaps() {
+    loadRelation(file_name);
+    size_t num_columns = columns_.size();
+    maps.reserve(num_columns);
+    #pragma omp parallel for
+    for (size_t c = 0; c < num_columns; ++c) {
+        // TODO: build hash maps for column c
+    }
+}
+
 // Destructor
 Relation::~Relation() {
     if (owns_memory_) {
