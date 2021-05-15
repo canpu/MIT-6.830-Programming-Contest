@@ -1,3 +1,5 @@
+src/include/omp.h
+
 # Prerequisites
 *.d
 

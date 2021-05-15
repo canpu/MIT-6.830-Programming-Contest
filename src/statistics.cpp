@@ -2,7 +2,8 @@
 #include "omp.h"
 #include <limits.h>
 
-using namespace::std;
+using namespace std;
+//using namespace:gcc -o foo foo.c -fopenmp:std;
 
 Histogram::Histogram(unsigned int interval_width) {
     this->interval_width = interval_width;

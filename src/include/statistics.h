@@ -1,5 +1,4 @@
 #pragma once
-
 #include <vector>
 
 // histogram of unsigned integers; each interval is left-inclusive and right-exclusive
@@ -10,6 +9,7 @@ class Histogram {
         std::vector<size_t> interval_count; // number of records in each interval
 
     public:
+        Histogram() = default;
         Histogram(unsigned int interval_width);
         Histogram(unsigned int interval_width, unsigned int estimated_histogram_max);
         ~Histogram() {}

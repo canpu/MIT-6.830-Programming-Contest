@@ -6,6 +6,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include "statistics.h"
+
 // Stores a relation into a binary file
 void Relation::storeRelation(const std::string &file_name) {
   std::ofstream out_file;
@@ -17,6 +19,33 @@ void Relation::storeRelation(const std::string &file_name) {
     out_file.write((char *) c, size_ * sizeof(uint64_t));
   }
   out_file.close();
+}
+
+// Creates histogram
+const std::vector<Histogram> Relation::createHistogram() const {
+  std::vector<Histogram> histograms;
+
+  for (unsigned i = 0; i < columns_.size(); i++) {
+    uint64_t min = columns_[i][0];
+    uint64_t max = columns_[i][0];
+
+    for (unsigned randomIndex = 0; randomIndex < size_/10; randomIndex++) {
+      unsigned random = columns_[i][rand() % size_];
+
+      if (random < min) min = random;
+      if (random > max) max = random;
+    }
+
+    Histogram histogram = Histogram((max-min)/10, max);
+
+    for(int tupleIndex = 0; tupleIndex < size_; tupleIndex++) {
+      histogram.add_entry(columns_[i][tupleIndex]);
+    }
+    
+    histograms.push_back(histogram);
+  }
+
+  return histograms;
 }
 
 // Stores a relation into a file (csv), e.g., for loading/testing it with a DBMS

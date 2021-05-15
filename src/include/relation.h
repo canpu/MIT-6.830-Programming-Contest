@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "statistics.h"
 
 using RelationId = unsigned;
 
@@ -29,6 +30,8 @@ class Relation {
   /// The destructor
   ~Relation();
 
+  /// Builds histogram
+  const std::vector<Histogram> createHistogram() const;
   /// Stores a relation into a file (binary)
   void storeRelation(const std::string &file_name);
   /// Stores a relation into a file (csv)
