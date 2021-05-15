@@ -194,9 +194,14 @@ bool SelfJoin::require(SelectInfo info) {
 void SelfJoin::run() {
     // TODO: edit late materialization
     // TODO: edit to use hash
+    // strategy: first reserve the max space, then compare
+    // strategy: divice c1=c2 and c1!=c2
+
     input_->require(p_info_.left);
     input_->require(p_info_.right);
     input_->run();
+
+    // remove the materialization here
     input_data_ = input_->getResults();
 
     for (auto &iu : required_IUs_) {

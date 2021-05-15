@@ -17,7 +17,7 @@ class Relation {
         /// The join column containing the keys
         std::vector<uint64_t *> columns_;
         //// Hash tables
-        std::vector<std::unordered_map<uint64_t, std::set<unsigned>>> maps; 
+        std::unordered_map<unsigned, std::unordered_map<uint64_t, std::set<unsigned>>> maps;
 
     public:
         /// Constructor without mmap
@@ -47,6 +47,8 @@ class Relation {
 
         /// Build Hash maps (used after loading)
         void buildHashMaps();
+        void buildHashMap(unsigned col_id);
+        const std::unordered_map<uint64_t, std::set<unsigned>> &getHashMap(unsigned col_id);
 
     private:
         /// Loads data from a file
