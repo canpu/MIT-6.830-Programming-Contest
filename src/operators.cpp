@@ -126,8 +126,6 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 
 // Run
 void Join::run() {
-    // TODO: edit late materialization
-    // TODO: edit to use hash
     left_->require(p_info_.left);
     right_->require(p_info_.right);
     left_->run();
@@ -183,19 +181,41 @@ void Join::run() {
     }
 
     // Materialization phase
-    for (unsigned cId = 0; cId < left_data_size + right_data_size; ++cId)
-        tmp_results_[cId].reserve(result_size_);
+//    for (unsigned cId = 0; cId < left_data_size + right_data_size; ++cId)
+//        tmp_results_[cId].reserve(result_size_);
+//
+//    #pragma omp parallel for
+//    for (size_t i = 0; i < result_size_; ++i) {
+//        auto left_id = t1[i];
+//        auto right_id = t2[i];
+//
+//        for (unsigned cId = 0; cId < left_data_size; ++cId)
+//            tmp_results_[cId][i] = copy_left_data_[cId][left_id];
+//
+//        for (unsigned cId = 0; cId < right_data_size; ++cId)
+//            tmp_results_[left_data_size+cId][i] = copy_right_data_[cId][right_id];
+//    }
+
+
 
     #pragma omp parallel for
-    for (size_t i = 0; i < result_size_; ++i) {
-        auto left_id = t1[i];
-        auto right_id = t2[i];
+    for (size_t col = 0; col < left_data_size; ++col) {
+        tmp_results_[col].reserve(result_size_);
+        for (size_t i = 0; i < result_size_; ++i) {
+            uint64_t left_id = t1[i];
+            uint64_t right_id = t2[i];
+            tmp_results_[col][i] = copy_left_data_[col][left_id];
+        }
+    }
 
-        for (unsigned cId = 0; cId < left_data_size; ++cId)
-            tmp_results_[cId][i] = copy_left_data_[cId][left_id];
-
-        for (unsigned cId = 0; cId < right_data_size; ++cId)
-            tmp_results_[left_data_size+cId][i] = copy_right_data_[cId][right_id];
+    #pragma omp parallel for
+    for (size_t col = 0; col < right_data_size; ++col) {
+        tmp_results_[left_data_size + col].reserve(result_size_);
+        for (size_t i = 0; i < result_size_; ++i) {
+            uint64_t left_id = t1[i];
+            uint64_t right_id = t2[i];
+            tmp_results_[left_data_size + col][i] = copy_right_data_[col][right_id];
+        }
     }
 }
 
@@ -230,7 +250,6 @@ void SelfJoin::run() {
     input_->require(p_info_.right);
     input_->run();
 
-    // remove the materialization here
     input_data_ = input_->getResults();
 
     for (auto &iu : required_IUs_) {
