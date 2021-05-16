@@ -5,9 +5,14 @@
 
 #include <cassert>
 #include <iostream>
+#include <time.h>
 
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
+
+static double filter_time;
+static double join_materialization_time, join_probing_time;
+static double self_join_materialization_time, self_join_probing_time;
 
 using namespace::std;
 
@@ -79,6 +84,9 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 
 // Run
 void FilterScan::run() {
+    time_t begin_timer, end_timer;
+    time(&begin_timer);
+
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
 
@@ -144,6 +152,9 @@ void FilterScan::run() {
             cur_ind++;
         }
     }
+
+    time(&end_timer);
+    filter_time += difftime(end_timer, begin_timer);
 }
 
 // Require a column and add it to results
@@ -183,6 +194,9 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 
 // Run
 void Join::run() {
+    time_t begin_timer, end_timer;
+    time(&begin_timer);
+
     left_->require(p_info_.left);
     right_->require(p_info_.right);
     left_->run();
@@ -267,6 +281,10 @@ void Join::run() {
 //        }
 //    }
 
+    time(&end_timer);
+    join_probing_time += difftime(end_timer, begin_timer);
+    time(&begin_timer);
+
     // Materialization phase
     #pragma omp parallel num_threads(NUM_THREADS)
     {
@@ -294,6 +312,9 @@ void Join::run() {
             }
         }
     }
+
+    time(&end_timer);
+    join_materialization_time += difftime(end_timer, begin_timer);
 }
 
 // Copy to result
@@ -318,6 +339,8 @@ bool SelfJoin::require(SelectInfo info) {
 
 // Run
 void SelfJoin::run() {
+    time_t begin_timer, end_timer;
+    time(&begin_timer);
 
     input_->require(p_info_.left);
     input_->require(p_info_.right);
@@ -367,6 +390,10 @@ void SelfJoin::run() {
         thread_result_sizes[thread_id] = thread_selected_ids[thread_id].size();
     }
 
+    time(&end_timer);
+    self_join_probing_time += difftime(end_timer, begin_timer);
+    time(&begin_timer);
+
     // Reduction
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
     result_size_ = 0;
@@ -396,6 +423,9 @@ void SelfJoin::run() {
             cur_ind++;
         }
     }
+
+    time(&end_timer);
+    self_join_materialization_time += difftime(end_timer, begin_timer);
 }
 
 // Run
@@ -418,4 +448,23 @@ void Checksum::run() {
             sum += *iter;
         check_sums_.push_back(sum);
     }
+}
+
+// Timer
+void reset_time() {
+    filter_time = 0.0;
+    self_join_probing_time = 0.0;
+    self_join_materialization_time = 0.0;
+    join_probing_time = 0.0;
+    join_materialization_time = 0.0;
+}
+
+void display_time() {
+    cerr << "FilterScan time = " << filter_time << " sec." << endl;
+    cerr << "SelfJoin time = " << self_join_probing_time + self_join_materialization_time  << " sec." << endl;
+    cerr << "\tProbing time = " << self_join_probing_time << " sec." << endl;
+    cerr << "\tMaterialization time = " << self_join_materialization_time << " sec." << endl;
+    cerr << "Join time = " << join_probing_time + join_materialization_time << " sec." << endl;
+    cerr << "\tProbing time = " << join_probing_time << " sec." << endl;
+    cerr << "\tMaterialization time = " << join_materialization_time << " sec." << endl;
 }
