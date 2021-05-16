@@ -33,6 +33,10 @@ class Histogram {
             return entry / interval_width;
         }
 
+        inline std::size_t get_number_of_records_eq(unsigned int entry) {
+            return interval_count[get_interval_index(entry)] / interval_width;
+        }
+
         void add_entry(unsigned int v);
 
         std::size_t get_total_number_of_records();

@@ -1,0 +1,14 @@
+# Target labels
+ googletest
+# Source files and their labels
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/CMakeFiles/googletest
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/CMakeFiles/googletest.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/CMakeFiles/googletest-complete.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-build.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-configure.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-download.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-install.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-mkdir.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-patch.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-test.rule
+/Users/ellenwang/Desktop/programming-contest-2021/test/googletest-download/googletest-prefix/src/googletest-stamp/googletest-update.rule

@@ -1,0 +1,7 @@
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/edit_cache.dir
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/query2SQL.dir
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/rebuild_cache.dir
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/database.dir
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/link_target.dir
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/driver.dir
+/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles/harness.dir

@@ -19,8 +19,11 @@ class Joiner {
         void addRelation(Relation &&relation);
         /// Get relation
         const Relation &getRelation(unsigned relation_id);
+        
         /// Joins a given set of relations
         std::string join(QueryInfo &i);
+        /// Joins using cardinality from histograms
+        std::string join(QueryInfo &i, std::vector<PredicateInfo> optimizedPredicates);
 
         const std::vector<Relation> &relations() const { return relations_; }
 

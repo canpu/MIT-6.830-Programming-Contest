@@ -127,3 +127,63 @@ std::string Joiner::join(QueryInfo &query) {
     return out.str();
 }
 
+// Executes a join query
+std::string Joiner::join(QueryInfo &query, std::vector<PredicateInfo> optimizedPredicates) {
+    std::set<unsigned> used_relations;
+
+    // We always start with the first join predicate and append the other joins
+    // to it (--> left-deep join trees). You might want to choose a smarter
+    // join ordering ...
+    const auto &firstJoin = optimizedPredicates[0];
+    std::unique_ptr<Operator> left, right;
+    left = addScan(used_relations, firstJoin.left, query);
+    right = addScan(used_relations, firstJoin.right, query);
+    std::unique_ptr<Operator>
+        root = std::make_unique<Join>(move(left), move(right), firstJoin);
+
+    auto predicates_copy = optimizedPredicates;
+    for (unsigned i = 1; i < predicates_copy.size(); ++i) {
+        auto &p_info = predicates_copy[i];
+        auto &left_info = p_info.left;
+        auto &right_info = p_info.right;
+
+        switch (analyzeInputOfJoin(used_relations, left_info, right_info)) {
+            case QueryGraphProvides::Left:left = move(root);
+                right = addScan(used_relations, right_info, query);
+                root = std::make_unique<Join>(move(left), move(right), p_info);
+                break;
+            case QueryGraphProvides::Right:
+                left = addScan(used_relations,
+                              left_info,
+                              query);
+                right = move(root);
+                root = std::make_unique<Join>(move(left), move(right), p_info);
+                break;
+            case QueryGraphProvides::Both:
+                // All relations of this join are already used somewhere else in the
+                // query. Thus, we have either a cycle in our join graph or more than
+                // one join predicate per join.
+                root = std::make_unique<SelfJoin>(move(root), p_info);
+                break;
+            case QueryGraphProvides::None:
+                // Process this predicate later when we can connect it to the other
+                // joins. We never have cross products.
+                predicates_copy.push_back(p_info);
+                break;
+        };
+    }
+
+    Checksum checksum(move(root), query.selections());
+    checksum.run();
+
+    std::stringstream out;
+    auto &results = checksum.check_sums();
+    for (unsigned i = 0; i < results.size(); ++i) {
+        out << (checksum.result_size() == 0 ? "NULL" : std::to_string(results[i]));
+        if (i < results.size() - 1)
+            out << " ";
+    }
+    out << "\n";
+    return out.str();
+}
+
