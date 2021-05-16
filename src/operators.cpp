@@ -311,7 +311,7 @@ void Join::run() {
     }
 
     end_time = omp_get_wtime();
-    self_join_materialization_time += (end_time - begin_time);
+    join_materialization_time += (end_time - begin_time);
 }
 
 // Copy to result
