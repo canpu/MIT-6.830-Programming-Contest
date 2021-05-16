@@ -387,7 +387,7 @@ void SelfJoin::run() {
     }
 
     end_time = omp_get_wtime();
-    join_probing_time += (end_time - begin_time);
+    self_join_probing_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Reduction
