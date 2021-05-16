@@ -18,6 +18,9 @@ int main(int argc, char *argv[]) {
     // Build histograms, indexes,...
     // TOOD: iterate over all relations and columns in joiner, and build maps for them
     // TODO: iterate over all relations and columns in joiner, and build histograms for them
+    for (const Relation &relation : joiner.relations()) {
+
+    }
 
     QueryInfo i;
     while (getline(std::cin, line)) {
