@@ -23,6 +23,8 @@ int main(int argc, char *argv[]) {
 
     }
 
+    reset_time();
+
     QueryInfo i;
     while (getline(std::cin, line)) {
         if (line == "F") continue; // End of a batch
