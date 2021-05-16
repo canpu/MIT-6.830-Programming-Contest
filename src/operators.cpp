@@ -421,10 +421,6 @@ void SelfJoin::run() {
         thread_result_sizes[thread_id] = thread_selected_ids[thread_id].size();
     }
 
-    end_time = omp_get_wtime();
-    self_join_probing_time += (end_time - begin_time);
-    begin_time = omp_get_wtime();
-
     // Reduction
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
     result_size_ = 0;
@@ -432,6 +428,10 @@ void SelfJoin::run() {
         thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
         result_size_ += thread_result_sizes[t];
     }
+
+    end_time = omp_get_wtime();
+    self_join_probing_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
     // Materialization
     for (size_t c = 0; c < tot_num_cols; ++c) {
