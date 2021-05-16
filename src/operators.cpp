@@ -2,7 +2,7 @@
 #include <omp.h>
 #include <set>
 #include <utility>
-#include <algorithm>
+
 #include <cassert>
 #include <iostream>
 
@@ -171,50 +171,64 @@ void Join::run() {
     size_t tot_num_cols = left_num_cols + right_num_cols;
     auto right_key_column = right_input_data[right_col_id];
     uint64_t right_input_size = right_->result_size();
-
-    vector<vector<uint64_t>> thread_vals[NUM_THREADS];
-    vector<size_t> thread_size(NUM_THREADS, 0);
+    vector<uint64_t> thread_left_selected[NUM_THREADS];
+    vector<uint64_t> thread_right_selected[NUM_THREADS];
 
     #pragma omp parallel num_threads(NUM_THREADS)
     {
         uint64_t thread_id = omp_get_thread_num();
-        vector<vector<uint64_t>> vals = thread_vals[thread_id];
-        vals.resize(tot_num_cols, vector<uint64_t> ());
 
         for (uint64_t right_id = thread_id; right_id < right_input_size; right_id += NUM_THREADS) {
             auto right_key_val = right_key_column[right_id];
             auto range = hash_table_.equal_range(right_key_val);
             for (auto iter = range.first; iter != range.second; ++iter) {
                 uint64_t left_id = iter->second;
-                for (size_t c = 0; c < left_num_cols; ++c) {
-                    vals[c].push_back(copy_left_data_[c][left_id]);
-                }
-                for (size_t c = 0; c < right_num_cols; ++c) {
-                    vals[left_num_cols + c].push_back(copy_right_data_[c][right_id]);
-                }
-                thread_size[thread_id] ++;
-                cout << "Found " << thread_size[thread_id] << endl;
+                thread_left_selected[thread_id].push_back(left_id);
+                thread_right_selected[thread_id].push_back(right_id);
             }
         }
     }
 
-    result_size_ = 0;
-    for (int t = 0; t < NUM_THREADS; ++t) {
-        cout << "Thread " << t << " " << thread_size[t] << endl;
-        result_size_ += thread_size[t];
+    size_t thread_results_size[NUM_THREADS];
+    size_t tmp_size;
+    for (uint64_t i = 0; i < NUM_THREADS; ++i) {
+        tmp_size = thread_right_selected[i].size();
+        result_size_ += tmp_size;
+        thread_results_size[i] = tmp_size;
     }
-    cout << "total size = " << result_size_ << endl;
 
-//    #pragma omp parallel for schedule(static)
-    for (size_t c = 0; c < tot_num_cols; ++c) {
-        tmp_results_[c].resize(0);
-        tmp_results_[c].reserve(result_size_);
-        uint64_t *data = tmp_results_[c].data();
-        cout << "insert col " << c << endl;
+    // Materialization phase
+    #pragma omp parallel num_threads(NUM_THREADS)
+    {
+        uint64_t num_threads = omp_get_num_threads();
+        uint64_t thread_id = omp_get_thread_num();
+
+        vector<uint64_t> left_selected, right_selected;
+
         for (uint64_t t = 0; t < NUM_THREADS; ++t) {
-            cout << "insert thread " << t << endl;
-//            copy(thread_vals[t][c].begin(), thread_vals[t][c].end(), tmp_results_[c].first() + thread_size[t]);
-            tmp_results_[c].insert(tmp_results_[c].end(), thread_vals[t][c].begin(), thread_vals[t][c].end());
+            left_selected = thread_left_selected[t];
+            left_selected = thread_left_selected[t];
+
+            for (uint64_t col = thread_id; col < left_num_cols; col += num_threads) {
+                tmp_results_[col].reserve(result_size_);
+                uint64_t *col_data = tmp_results_[col].data();
+                unsigned id;
+                for (size_t i = 0; i < result_size_; ++i) {
+                    id = left_selected[i];
+                    col_data[i] = copy_left_data_[col][id];
+                }
+            }
+
+            for (uint64_t col = thread_id; col < right_num_cols; col += num_threads) {
+                uint64_t global_col = left_num_cols + col;
+                tmp_results_[global_col].reserve(result_size_);
+                uint64_t *col_data = tmp_results_[left_num_cols + col].data();
+                unsigned id;
+                for (size_t i = 0; i < result_size_; ++i) {
+                    id = right_selected[i];
+                    col_data[i] = copy_right_data_[col][id];
+                }
+            }
         }
     }
 }
@@ -263,36 +277,12 @@ void SelfJoin::run() {
     auto left_col = input_data_[left_col_id];
     auto right_col = input_data_[right_col_id];
 
-//    std::unordered_map<uint64_t, std::set<unsigned>> left_hash;
-//    for (unsigned row_index = 0; row_index < input_->result_size(); ++row_index) {
-//        uint64_t val = left_col[row_index];
-//        if (left_hash.find(val) == left_hash.end()) {
-//            std::set<unsigned> tmp_set;
-//            tmp_set.emplace(row_index);
-//            left_hash.emplace(val, tmp_set);
-//        } else {
-//            left_hash[val].emplace(row_index);
-//        }
-//    }
-
-//    size_t num_cols = copy_data_.size();
-//    result_size_ = 0;
-//    for (unsigned row_index = 0; row_index < input_size; ++row_index) {
-//        uint64_t val = right_col[row_index];
-//        if (left_hash.find(val) != left_hash.end()) {
-//            for (unsigned left_index: left_hash[val]) {
-//                for (unsigned cId = 0; cId < num_cols; ++cId)
-//                    tmp_results_[cId].push_back(copy_data_[cId][row_index]);
-//                ++result_size_;
-//            }
-//        }
-//    }
+    size_t tot_num_cols = copy_data_.size();
 
 
     for (uint64_t i = 0; i < input_->result_size(); ++i) {
         if (left_col[i] == right_col[i]) {
-            size_t data_size = copy_data_.size();
-            for (unsigned cId = 0; cId < data_size; ++cId)
+            for (unsigned cId = 0; cId < tot_num_cols; ++cId)
                 tmp_results_[cId].push_back(copy_data_[cId][i]);
             ++result_size_;
         }
@@ -320,4 +310,3 @@ void Checksum::run() {
         check_sums_.push_back(sum);
     }
 }
-
