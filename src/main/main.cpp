@@ -3,6 +3,7 @@
 #include "joiner.h"
 #include "parser.h"
 #include <vector>
+#include "operators.h"
 
 int main(int argc, char *argv[]) {
     Joiner joiner;
@@ -28,6 +29,8 @@ int main(int argc, char *argv[]) {
         i.parseQuery(line);
         std::cout << joiner.join(i);
     }
+
+    display_time();
 
     return 0;
 }

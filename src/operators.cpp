@@ -10,9 +10,9 @@
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
 
-static double filter_time;
-static double join_materialization_time, join_probing_time;
-static double self_join_materialization_time, self_join_probing_time;
+static double filter_time = 0.0;
+static double join_materialization_time = 0.0, join_probing_time = 0.0;
+static double self_join_materialization_time = 0.0, self_join_probing_time = 0.0;
 
 using namespace::std;
 
