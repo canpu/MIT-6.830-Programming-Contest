@@ -113,8 +113,12 @@ std::string Joiner::join(QueryInfo &query) {
         };
     }
 
+    reset_time();
+
     Checksum checksum(move(root), query.selections());
     checksum.run();
+
+    display_time();
 
     std::stringstream out;
     auto &results = checksum.check_sums();
@@ -126,4 +130,6 @@ std::string Joiner::join(QueryInfo &query) {
     out << "\n";
     return out.str();
 }
+
+void display_time();
 
