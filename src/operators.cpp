@@ -2,7 +2,7 @@
 #include <omp.h>
 #include <set>
 #include <utility>
-
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -171,72 +171,50 @@ void Join::run() {
     size_t tot_num_cols = left_num_cols + right_num_cols;
     auto right_key_column = right_input_data[right_col_id];
     uint64_t right_input_size = right_->result_size();
-    vector<uint64_t> left_selected, right_selected;
-    vector<uint64_t> thread_left_selected[NUM_THREADS];
-    vector<uint64_t> thread_right_selected[NUM_THREADS];
+
+    vector<vector<uint64_t>> thread_vals[NUM_THREADS];
+    vector<size_t> thread_size(NUM_THREADS, 0);
 
     #pragma omp parallel num_threads(NUM_THREADS)
     {
         uint64_t thread_id = omp_get_thread_num();
+        vector<vector<uint64_t>> vals = thread_vals[thread_id];
+        vals.resize(tot_num_cols, vector<uint64_t> ());
 
         for (uint64_t right_id = thread_id; right_id < right_input_size; right_id += NUM_THREADS) {
             auto right_key_val = right_key_column[right_id];
             auto range = hash_table_.equal_range(right_key_val);
             for (auto iter = range.first; iter != range.second; ++iter) {
                 uint64_t left_id = iter->second;
-                thread_left_selected[thread_id].push_back(left_id);
-                thread_right_selected[thread_id].push_back(right_id);
+                for (size_t c = 0; c < left_num_cols; ++c) {
+                    vals[c].push_back(copy_left_data_[c][left_id]);
+                }
+                for (size_t c = 0; c < right_num_cols; ++c) {
+                    vals[left_num_cols + c].push_back(copy_right_data_[c][right_id]);
+                }
+                thread_size[thread_id] ++;
+                cout << "Found " << thread_size[thread_id] << endl;
             }
         }
     }
 
-    for (uint64_t i = 0; i < NUM_THREADS; ++i) {
-        left_selected.insert(left_selected.end(), thread_left_selected[i].begin(), thread_left_selected[i].end());
-        right_selected.insert(right_selected.end(), thread_right_selected[i].begin(), thread_right_selected[i].end());
-        result_size_ += thread_right_selected[i].size();
+    result_size_ = 0;
+    for (int t = 0; t < NUM_THREADS; ++t) {
+        cout << "Thread " << t << " " << thread_size[t] << endl;
+        result_size_ += thread_size[t];
     }
+    cout << "total size = " << result_size_ << endl;
 
-////    #pragma omp parallel for
-//    for (uint64_t right_id = 0; right_id < right_input_size; ++right_id) {
-//        auto right_key_val = right_key_column[right_id];
-//        auto range = hash_table_.equal_range(right_key_val);
-//        vector<uint64_t> left_selected_private, right_selected_private;
-//        for (auto iter = range.first; iter != range.second; ++iter) {
-//            uint64_t left_id = iter->second;
-////            #pragma omp critical
-//            {
-//                left_selected.push_back(left_id);
-//                right_selected.push_back(right_id);
-//                ++result_size_;
-//            }
-//        }
-//    }
-
-    // Materialization phase
-    #pragma omp parallel num_threads(NUM_THREADS)
-    {
-        uint64_t num_threads = omp_get_num_threads();
-        uint64_t thread_id = omp_get_thread_num();
-
-        for (uint64_t col = thread_id; col < left_num_cols; col += num_threads) {
-            tmp_results_[col].reserve(result_size_);
-            uint64_t *col_data = tmp_results_[col].data();
-            unsigned id;
-            for (size_t i = 0; i < result_size_; ++i) {
-                id = left_selected[i];
-                col_data[i] = copy_left_data_[col][id];
-            }
-        }
-
-        for (uint64_t col = thread_id; col < right_num_cols; col += num_threads) {
-            uint64_t global_col = left_num_cols + col;
-            tmp_results_[global_col].reserve(result_size_);
-            uint64_t *col_data = tmp_results_[left_num_cols + col].data();
-            unsigned id;
-            for (size_t i = 0; i < result_size_; ++i) {
-                id = right_selected[i];
-                col_data[i] = copy_right_data_[col][id];
-            }
+//    #pragma omp parallel for schedule(static)
+    for (size_t c = 0; c < tot_num_cols; ++c) {
+        tmp_results_[c].resize(0);
+        tmp_results_[c].reserve(result_size_);
+        uint64_t *data = tmp_results_[c].data();
+        cout << "insert col " << c << endl;
+        for (uint64_t t = 0; t < NUM_THREADS; ++t) {
+            cout << "insert thread " << t << endl;
+//            copy(thread_vals[t][c].begin(), thread_vals[t][c].end(), tmp_results_[c].first() + thread_size[t]);
+            tmp_results_[c].insert(tmp_results_[c].end(), thread_vals[t][c].begin(), thread_vals[t][c].end());
         }
     }
 }
