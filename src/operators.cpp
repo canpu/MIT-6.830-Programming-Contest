@@ -7,6 +7,7 @@
 #include <iostream>
 
 #define NUM_THREADS 24
+#define DEPTH_WORTHY_PARALLELIZATION 3
 
 using namespace::std;
 
@@ -83,7 +84,7 @@ void FilterScan::run() {
 
     uint64_t size_per_thread;
     uint64_t num_threads;
-    if (input_data_size < NUM_THREADS * 3) {
+    if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
         num_threads = 1;
         size_per_thread = input_data_size;
     } else
@@ -338,7 +339,7 @@ void SelfJoin::run() {
     // Probing
     uint64_t size_per_thread;
     uint64_t num_threads;
-    if (input_data_size < NUM_THREADS * 3) {
+    if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
         num_threads = 1;
         size_per_thread = input_data_size;
     } else
