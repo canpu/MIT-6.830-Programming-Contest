@@ -10,9 +10,9 @@
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
 
-static double filter_time = 0.0;
-static double join_time = 0.0;
-static double self_join_time = 0.0;
+static double filter_time;
+static double join_materialization_time, join_probing_time;
+static double self_join_materialization_time, self_join_probing_time;
 
 using namespace::std;
 
@@ -281,6 +281,10 @@ void Join::run() {
 //        }
 //    }
 
+    time(&end_timer);
+    join_probing_time += difftime(end_timer, begin_timer);
+    time(&begin_timer);
+
     // Materialization phase
     #pragma omp parallel num_threads(NUM_THREADS)
     {
@@ -310,7 +314,7 @@ void Join::run() {
     }
 
     time(&end_timer);
-    join_time += difftime(end_timer, begin_timer);
+    join_materialization_time += difftime(end_timer, begin_timer);
 }
 
 // Copy to result
@@ -386,6 +390,10 @@ void SelfJoin::run() {
         thread_result_sizes[thread_id] = thread_selected_ids[thread_id].size();
     }
 
+    time(&end_timer);
+    self_join_probing_time += difftime(end_timer, begin_timer);
+    time(&begin_timer);
+
     // Reduction
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
     result_size_ = 0;
@@ -417,7 +425,7 @@ void SelfJoin::run() {
     }
 
     time(&end_timer);
-    self_join_time += difftime(end_timer, begin_timer);
+    self_join_materialization_time += difftime(end_timer, begin_timer);
 }
 
 // Run
@@ -443,8 +451,20 @@ void Checksum::run() {
 }
 
 // Timer
+void reset_time() {
+    filter_time = 0.0;
+    self_join_probing_time = 0.0;
+    self_join_materialization_time = 0.0;
+    join_probing_time = 0.0;
+    join_materialization_time = 0.0;
+}
+
 void display_time() {
     cerr << "FilterScan time = " << filter_time << " sec." << endl;
-    cerr << "SelfJoin time = " << self_join_time << " sec." << endl;
-    cerr << "Join time = " << join_time << " sec." << endl;
+    cerr << "SelfJoin time = " << self_join_probing_time + self_join_materialization_time  << " sec." << endl;
+    cerr << "\tProbing time = " << self_join_probing_time << " sec." << endl;
+    cerr << "\tMaterialization time = " << self_join_materialization_time << " sec." << endl;
+    cerr << "Join time = " << join_probing_time + join_materialization_time << " sec." << endl;
+    cerr << "\tProbing time = " << join_probing_time << " sec." << endl;
+    cerr << "\tMaterialization time = " << join_materialization_time << " sec." << endl;
 }

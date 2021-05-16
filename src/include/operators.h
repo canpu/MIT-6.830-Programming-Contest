@@ -201,4 +201,6 @@ class Checksum : public Operator {
         const std::vector<uint64_t> &check_sums() { return check_sums_; }
 };
 
+void reset_time();
+
 void display_time();

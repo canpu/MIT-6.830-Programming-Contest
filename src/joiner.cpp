@@ -113,6 +113,8 @@ std::string Joiner::join(QueryInfo &query) {
         };
     }
 
+    reset_time();
+
     Checksum checksum(move(root), query.selections());
     checksum.run();
 
