@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include "statistics.h"
+#include <unordered_map>
+#include <set>
 
 using RelationId = unsigned;
 

@@ -62,9 +62,9 @@ std::unique_ptr<Operator> Joiner::addScan(std::set<unsigned> &used_relations,
         }
     }
     return !filters.empty() ?
-          std::make_unique<FilterScan>(getRelation(info.rel_id), filters)
-                            : std::make_unique<Scan>(getRelation(info.rel_id),
-                                                    info.binding);
+        std::make_unique<FilterScan>(getRelation(info.rel_id), filters)
+                          : std::make_unique<Scan>(getRelation(info.rel_id),
+                                                  info.binding);
 }
 
 // Executes a join query
@@ -94,8 +94,8 @@ std::string Joiner::join(QueryInfo &query) {
                 break;
             case QueryGraphProvides::Right:
                 left = addScan(used_relations,
-                              left_info,
-                              query);
+                                left_info,
+                                query);
                 right = move(root);
                 root = std::make_unique<Join>(move(left), move(right), p_info);
                 break;
@@ -113,8 +113,12 @@ std::string Joiner::join(QueryInfo &query) {
         };
     }
 
+    reset_time();
+
     Checksum checksum(move(root), query.selections());
     checksum.run();
+
+    display_time();
 
     std::stringstream out;
     auto &results = checksum.check_sums();

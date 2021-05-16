@@ -7,68 +7,68 @@
 namespace {
 
 class OperatorTest : public testing::Test {
- protected:
-  Relation r1 = Utils::createRelation(5, 3);
-  Relation r2 = Utils::createRelation(10, 5);
+    protected:
+        Relation r1 = Utils::createRelation(5, 3);
+        Relation r2 = Utils::createRelation(10, 5);
 };
 
 TEST_F(OperatorTest, Scan) {
-  unsigned rel_binding = 5;
-  Scan scan(r1, rel_binding);
-  scan.require(SelectInfo(rel_binding, 0));
-  scan.require(SelectInfo(rel_binding, 2));
-  scan.run();
-  auto results = scan.getResults();
-  ASSERT_EQ(results.size(), 2ull);
-  auto col_id_1 = scan.resolve(SelectInfo{rel_binding, 0});
-  auto col_id_2 = scan.resolve(SelectInfo{rel_binding, 2});
-  ASSERT_EQ(results[col_id_1], r1.columns()[0]);
-  ASSERT_EQ(results[col_id_2], r1.columns()[2]);
+    unsigned rel_binding = 5;
+    Scan scan(r1, rel_binding);
+    scan.require(SelectInfo(rel_binding, 0));
+    scan.require(SelectInfo(rel_binding, 2));
+    scan.run();
+    auto results = scan.getResults();
+    ASSERT_EQ(results.size(), 2ull);
+    auto col_id_1 = scan.resolve(SelectInfo{rel_binding, 0});
+    auto col_id_2 = scan.resolve(SelectInfo{rel_binding, 2});
+    ASSERT_EQ(results[col_id_1], r1.columns()[0]);
+    ASSERT_EQ(results[col_id_2], r1.columns()[2]);
 }
 
 TEST_F(OperatorTest, ScanWithSelection) {
-  unsigned rel_id = 0;
-  unsigned rel_binding = 1;
-  unsigned col_id = 2;
-  SelectInfo s_info(rel_id, rel_binding, col_id);
-  uint64_t constant = 2;
-  {
-    FilterInfo f_info(s_info, constant, FilterInfo::Comparison::Equal);
-    FilterScan filter_scan(r1, f_info);
-    filter_scan.run();
-    auto results = filter_scan.getResults();
-    ASSERT_EQ(results.size(), 0u);
-  }
-  {
-    FilterInfo f_info(s_info, constant, FilterInfo::Comparison::Equal);
-    FilterScan filter_scan(r1, f_info);
-    filter_scan.require(SelectInfo(rel_binding, 0));
-    filter_scan.require(SelectInfo(rel_binding, 2));
-    filter_scan.run();
-
-    ASSERT_EQ(filter_scan.result_size(), 1ull);
-    auto results = filter_scan.getResults();
-    ASSERT_EQ(results.size(), 2ull);
-    auto filter_col_id = filter_scan.resolve(SelectInfo{rel_binding, col_id});
-    ASSERT_EQ(results[filter_col_id][0], constant);
-  }
-  {
-    FilterInfo f_info(s_info, constant, FilterInfo::Comparison::Greater);
-    FilterScan filter_scan(r1, f_info);
-    col_id = 1;
-    filter_scan.require(SelectInfo(rel_binding, col_id));
-    filter_scan.run();
-
-    ASSERT_EQ(filter_scan.result_size(), 2ull);
-    auto results = filter_scan.getResults();
-    ASSERT_EQ(results.size(), 1ull);
-
-    auto res_col_id = filter_scan.resolve(SelectInfo{rel_binding, col_id});
-    auto filter_col = results[res_col_id];
-    for (unsigned j = 0; j < filter_scan.result_size(); ++j) {
-      ASSERT_TRUE(filter_col[j] > constant);
+    unsigned rel_id = 0;
+    unsigned rel_binding = 1;
+    unsigned col_id = 2;
+    SelectInfo s_info(rel_id, rel_binding, col_id);
+    uint64_t constant = 2;
+    {
+        FilterInfo f_info(s_info, constant, FilterInfo::Comparison::Equal);
+        FilterScan filter_scan(r1, f_info);
+        filter_scan.run();
+        auto results = filter_scan.getResults();
+        ASSERT_EQ(results.size(), 0u);
     }
-  }
+    {
+        FilterInfo f_info(s_info, constant, FilterInfo::Comparison::Equal);
+        FilterScan filter_scan(r1, f_info);
+        filter_scan.require(SelectInfo(rel_binding, 0));
+        filter_scan.require(SelectInfo(rel_binding, 2));
+        filter_scan.run();
+
+        ASSERT_EQ(filter_scan.result_size(), 1ull);
+        auto results = filter_scan.getResults();
+        ASSERT_EQ(results.size(), 2ull);
+        auto filter_col_id = filter_scan.resolve(SelectInfo{rel_binding, col_id});
+        ASSERT_EQ(results[filter_col_id][0], constant);
+    }
+    {
+        FilterInfo f_info(s_info, constant, FilterInfo::Comparison::Greater);
+        FilterScan filter_scan(r1, f_info);
+        col_id = 1;
+        filter_scan.require(SelectInfo(rel_binding, col_id));
+        filter_scan.run();
+
+        ASSERT_EQ(filter_scan.result_size(), 2ull);
+        auto results = filter_scan.getResults();
+        ASSERT_EQ(results.size(), 1ull);
+
+        auto res_col_id = filter_scan.resolve(SelectInfo{rel_binding, col_id});
+        auto filter_col = results[res_col_id];
+        for (unsigned j = 0; j < filter_scan.result_size(); ++j) {
+            ASSERT_TRUE(filter_col[j] > constant);
+        }
+    }
 }
 
 TEST_F(OperatorTest, Join) {
