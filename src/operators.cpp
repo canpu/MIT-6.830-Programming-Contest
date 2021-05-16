@@ -10,7 +10,7 @@
 #define DEPTH_WORTHY_PARALLELIZATION 3
 
 static double filter_time = 0.0;
-static double join_materialization_time = 0.0, join_probing_time = 0.0;
+static double join_materialization_time = 0.0, join_probing_time = 0.0, join_build_time = 0.0;
 static double self_join_materialization_time = 0.0, self_join_probing_time = 0.0;
 
 using namespace::std;
@@ -192,7 +192,6 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 
 // Run
 void Join::run() {
-    double begin_time = omp_get_wtime(), end_time;
 
     left_->require(p_info_.left);
     right_->require(p_info_.right);
@@ -223,13 +222,46 @@ void Join::run() {
     auto left_col_id = left_->resolve(p_info_.left);
     auto right_col_id = right_->resolve(p_info_.right);
 
-    // Build phase
-    auto left_key_column = left_input_data[left_col_id];
-    hash_table_.reserve(left_->result_size() * 2);
     uint64_t left_input_size = left_->result_size();
+
+    // Build phase
+    double begin_time = omp_get_wtime(), end_time;
+
+    auto left_key_column = left_input_data[left_col_id];
+
+//    uint64_t size_per_thread;
+//    uint64_t num_threads;
+//    if (left_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+//        num_threads = 1;
+//        size_per_thread = left_input_size;
+//    } else
+//        num_threads = NUM_THREADS;
+//    size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
+//    vector<vector<size_t>> thread_selected_ids(num_threads);
+//    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
+//
+//    vector<HT> hash_tables(num_threads);
+//    #pragma omp parallel num_threads(num_threads)
+//    {
+//        uint64_t tid = omp_get_thread_num();
+//        hash_tables[tid].reserve(left_input_size * 2);
+//        uint64_t start_ind = tid * size_per_thread;
+//        uint64_t end_ind = (tid + 1) * size_per_thread;
+//        if (end_ind > left_input_size)
+//            end_ind = left_input_size;
+//        for (uint64_t i = start_ind; i < end_ind; ++i) {
+//            hash_tables[tid].emplace(left_key_column[i], i);
+//        }
+//    }
+
+    hash_table_.reserve(left_input_size * 2);
     for (uint64_t i = 0, limit = i + left_input_size; i != limit; ++i) {
         hash_table_.emplace(left_key_column[i], i);
     }
+
+    end_time = omp_get_wtime();
+    join_build_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
     // Probe phase
     size_t left_num_cols = copy_left_data_.size();
@@ -247,11 +279,13 @@ void Join::run() {
 
         for (uint64_t right_id = thread_id; right_id < right_input_size; right_id += NUM_THREADS) {
             auto right_key_val = right_key_column[right_id];
-            auto range = hash_table_.equal_range(right_key_val);
-            for (auto iter = range.first; iter != range.second; ++iter) {
-                uint64_t left_id = iter->second;
-                thread_left_selected[thread_id].push_back(left_id);
-                thread_right_selected[thread_id].push_back(right_id);
+            for (uint64_t t = 0; t < 1; ++t) {
+                auto range = hash_table_.equal_range(right_key_val);
+                for (auto iter = range.first; iter != range.second; ++iter) {
+                    uint64_t left_id = iter->second;
+                    thread_left_selected[thread_id].push_back(left_id);
+                    thread_right_selected[thread_id].push_back(right_id);
+                }
             }
         }
     }
@@ -336,7 +370,6 @@ bool SelfJoin::require(SelectInfo info) {
 
 // Run
 void SelfJoin::run() {
-    double begin_time = omp_get_wtime(), end_time;
 
     input_->require(p_info_.left);
     input_->require(p_info_.right);
@@ -358,6 +391,8 @@ void SelfJoin::run() {
     auto right_col = input_data_[right_col_id];
 
     // Probing
+    double begin_time = omp_get_wtime(), end_time;
+
     uint64_t size_per_thread;
     uint64_t num_threads;
     if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
@@ -452,6 +487,7 @@ void reset_time() {
     self_join_probing_time = 0.0;
     self_join_materialization_time = 0.0;
     join_probing_time = 0.0;
+    join_build_time = 0.0;
     join_materialization_time = 0.0;
 }
 
@@ -460,7 +496,8 @@ void display_time() {
     cerr << "SelfJoin time = " << self_join_probing_time + self_join_materialization_time  << " sec." << endl;
     cerr << "\tProbing time = " << self_join_probing_time << " sec." << endl;
     cerr << "\tMaterialization time = " << self_join_materialization_time << " sec." << endl;
-    cerr << "Join time = " << join_probing_time + join_materialization_time << " sec." << endl;
+    cerr << "Join time = " << join_probing_time + join_materialization_time + join_build_time << " sec." << endl;
+    cerr << "\tBuilding time = " << join_build_time << " sec." << endl;
     cerr << "\tProbing time = " << join_probing_time << " sec." << endl;
     cerr << "\tMaterialization time = " << join_materialization_time << " sec." << endl;
 }
