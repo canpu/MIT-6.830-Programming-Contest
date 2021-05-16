@@ -10,9 +10,9 @@
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
 
-double filter_time = 0.0;
-double join_time = 0.0;
-double self_join_time = 0.0;
+static double filter_time = 0.0;
+static double join_time = 0.0;
+static double self_join_time = 0.0;
 
 using namespace::std;
 
@@ -155,8 +155,6 @@ void FilterScan::run() {
 
     time(&end_timer);
     filter_time += difftime(end_timer, begin_timer);
-
-    cout << "FilterScan time = " << filter_time << " sec." << endl;
 }
 
 // Require a column and add it to results
@@ -313,8 +311,6 @@ void Join::run() {
 
     time(&end_timer);
     join_time += difftime(end_timer, begin_timer);
-
-    cout << "Join time = " << join_time << " sec." << endl;
 }
 
 // Copy to result
@@ -422,8 +418,6 @@ void SelfJoin::run() {
 
     time(&end_timer);
     self_join_time += difftime(end_timer, begin_timer);
-
-    cerr << "SelfJoin time = " << self_join_time << " sec." << endl;
 }
 
 // Run
@@ -446,4 +440,11 @@ void Checksum::run() {
             sum += *iter;
         check_sums_.push_back(sum);
     }
+}
+
+// Timer
+void display_time() {
+    cerr << "FilterScan time = " << filter_time << " sec." << endl;
+    cerr << "SelfJoin time = " << self_join_time << " sec." << endl;
+    cerr << "Join time = " << join_time << " sec." << endl;
 }

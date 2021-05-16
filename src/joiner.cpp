@@ -116,6 +116,8 @@ std::string Joiner::join(QueryInfo &query) {
     Checksum checksum(move(root), query.selections());
     checksum.run();
 
+    display_time();
+
     std::stringstream out;
     auto &results = checksum.check_sums();
     for (unsigned i = 0; i < results.size(); ++i) {
@@ -126,4 +128,6 @@ std::string Joiner::join(QueryInfo &query) {
     out << "\n";
     return out.str();
 }
+
+void display_time();
 

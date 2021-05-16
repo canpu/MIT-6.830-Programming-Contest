@@ -201,3 +201,4 @@ class Checksum : public Operator {
         const std::vector<uint64_t> &check_sums() { return check_sums_; }
 };
 
+void display_time();
