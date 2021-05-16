@@ -93,7 +93,9 @@ void FilterScan::run() {
     vector<vector<size_t>> thread_selected_ids(num_threads);
     vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
 
-    for (uint64_t tid = 0; tid < num_threads; ++tid) {
+    #pragma omp parallel num_threads(num_threads)
+    {
+        uint64_t tid = omp_get_thread_num();
         thread_selected_ids[tid] = vector<size_t> ();
         thread_selected_ids[tid].reserve(size_per_thread);
 
