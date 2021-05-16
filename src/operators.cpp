@@ -78,16 +78,68 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 
 // Run
 void FilterScan::run() {
-    size_t relation_size = relation_.size();
+    size_t input_data_size = relation_.size();
+    size_t num_cols = input_data_.size();
 
-    for (size_t i = 0; i < relation_size; ++i) {
-        bool pass = true;
-        for (auto &f : filters_) {
+    uint64_t size_per_thread;
+    uint64_t num_threads;
+    if (input_data_size < NUM_THREADS * 3) {
+        num_threads = 1;
+        size_per_thread = input_data_size;
+    } else
+        num_threads = NUM_THREADS;
+    size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
+    vector<vector<size_t>> thread_selected_ids(num_threads);
+    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
+
+    for (uint64_t tid = 0; tid < num_threads; ++tid) {
+        thread_selected_ids[tid] = vector<size_t> ();
+        thread_selected_ids[tid].reserve(size_per_thread);
+
+        uint64_t col_offset = tid * size_per_thread;
+        uint64_t ii;
+
+        for (uint64_t i = col_offset; i < col_offset + size_per_thread && i < input_data_size; ++i) {
+            bool pass = true;
+            for (auto &f : filters_) {
             pass &= applyFilter(i, f);
-            if (!pass) break;
+                if (!pass) break;
+            }
+            if (pass) {
+                thread_selected_ids[tid].push_back(i);
+            }
         }
-        if (pass)
-            copy2Result(i);
+        thread_result_sizes[tid] = thread_selected_ids[tid].size();
+    }
+
+    // Reduction
+    vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
+    result_size_ = 0;
+    for (uint64_t t = 0; t < num_threads; ++t) {
+        thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
+        result_size_ += thread_result_sizes[t];
+    }
+
+    // Materialization
+    for (size_t c = 0; c < num_cols; ++c) {
+        tmp_results_[c].reserve(result_size_);
+    }
+
+    #pragma omp parallel num_threads(num_threads)
+    {
+        uint64_t tid = omp_get_thread_num();
+
+        vector<size_t> &selected = thread_selected_ids[tid];
+        size_t t_size = thread_result_sizes[tid];
+        size_t cur_ind = thread_cum_sizes[tid];
+
+        for (uint64_t i = 0; i < t_size; ++i) {
+            size_t id = selected[i];
+            for (unsigned cId = 0; cId < num_cols; ++cId) {
+                tmp_results_[cId][cur_ind] = input_data_[cId][id];
+            }
+            cur_ind++;
+        }
     }
 }
 
@@ -315,13 +367,9 @@ void SelfJoin::run() {
     // Reduction
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
     result_size_ = 0;
-    size_t m = 0;
     for (uint64_t t = 0; t < num_threads; ++t) {
         thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
         result_size_ += thread_result_sizes[t];
-        for (int i = 0; i < thread_result_sizes[t]; ++i)
-            if (thread_selected_ids[t][i] > 0)
-                m = thread_selected_ids[t][i];
     }
 
     // Materialization
