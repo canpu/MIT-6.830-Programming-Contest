@@ -8,6 +8,7 @@
 
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
+#define RESERVE_FACTOR 4
 
 static double filter_time = 0.0;
 static double join_materialization_time = 0.0, join_probing_time = 0.0, join_build_time = 0.0;
@@ -229,32 +230,7 @@ void Join::run() {
 
     auto left_key_column = left_input_data[left_col_id];
 
-//    uint64_t size_per_thread;
-//    uint64_t num_threads;
-//    if (left_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-//        num_threads = 1;
-//        size_per_thread = left_input_size;
-//    } else
-//        num_threads = NUM_THREADS;
-//    size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
-//    vector<vector<size_t>> thread_selected_ids(num_threads);
-//    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
-//
-//    vector<HT> hash_tables(num_threads);
-//    #pragma omp parallel num_threads(num_threads)
-//    {
-//        uint64_t tid = omp_get_thread_num();
-//        hash_tables[tid].reserve(left_input_size * 2);
-//        uint64_t start_ind = tid * size_per_thread;
-//        uint64_t end_ind = (tid + 1) * size_per_thread;
-//        if (end_ind > left_input_size)
-//            end_ind = left_input_size;
-//        for (uint64_t i = start_ind; i < end_ind; ++i) {
-//            hash_tables[tid].emplace(left_key_column[i], i);
-//        }
-//    }
-
-    hash_table_.reserve(left_input_size * 2);
+    hash_table_.reserve(left_input_size * RESERVE_FACTOR);
     for (uint64_t i = 0, limit = i + left_input_size; i != limit; ++i) {
         hash_table_.emplace(left_key_column[i], i);
     }
@@ -269,6 +245,19 @@ void Join::run() {
     size_t tot_num_cols = left_num_cols + right_num_cols;
     auto right_key_column = right_input_data[right_col_id];
     uint64_t right_input_size = right_->result_size();
+
+    uint64_t size_per_thread;
+    uint64_t num_threads;
+    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+        num_threads = 1;
+        size_per_thread = right_input_size;
+    } else {
+        num_threads = NUM_THREADS;
+        size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
+    }
+    vector<vector<size_t>> thread_selected_ids(num_threads);
+    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
+
     vector<uint64_t> left_selected, right_selected;
     vector<uint64_t> thread_left_selected[NUM_THREADS];
     vector<uint64_t> thread_right_selected[NUM_THREADS];
@@ -276,8 +265,14 @@ void Join::run() {
     #pragma omp parallel num_threads(NUM_THREADS)
     {
         uint64_t thread_id = omp_get_thread_num();
+        thread_left_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
+        thread_right_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
+        uint64_t start_ind = thread_id * size_per_thread;
+        uint64_t end_ind = (thread_id + 1) * size_per_thread;
+        if (end_ind > right_input_size)
+            end_ind = right_input_size;
 
-        for (uint64_t right_id = thread_id; right_id < right_input_size; right_id += NUM_THREADS) {
+        for (uint64_t right_id = start_ind; right_id < end_ind; ++right_id) {
             auto right_key_val = right_key_column[right_id];
             for (uint64_t t = 0; t < 1; ++t) {
                 auto range = hash_table_.equal_range(right_key_val);
@@ -410,10 +405,12 @@ void SelfJoin::run() {
         thread_selected_ids[thread_id] = vector<size_t> ();
         thread_selected_ids[thread_id].reserve(size_per_thread);
 
-        uint64_t col_offset = thread_id * size_per_thread;
-        uint64_t ii;
+        uint64_t start_ind = thread_id * size_per_thread;
+        uint64_t end_ind = start_ind + size_per_thread;
+        if (end_ind > input_data_size)
+            end_ind = input_data_size;
 
-        for (uint64_t i = col_offset; i < col_offset + size_per_thread && i < input_data_size; ++i) {
+        for (uint64_t i = start_ind; i < end_ind; ++i) {
             if (left_col[i] == right_col[i]) {
                 thread_selected_ids[thread_id].push_back(i);
             }
