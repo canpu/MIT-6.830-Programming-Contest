@@ -5,9 +5,14 @@
 
 #include <cassert>
 #include <iostream>
+#include <time.h>
 
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
+
+double filter_time = 0.0;
+double join_time = 0.0;
+double self_join_time = 0.0;
 
 using namespace::std;
 
@@ -79,6 +84,9 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 
 // Run
 void FilterScan::run() {
+    time_t begin_timer, end_timer;
+    time(&begin_timer);
+
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
 
@@ -144,6 +152,11 @@ void FilterScan::run() {
             cur_ind++;
         }
     }
+
+    time(&end_timer);
+    filter_time += difftime(end_timer, begin_timer);
+
+    cout << "FilterScan time = " << filter_time << " sec." << endl;
 }
 
 // Require a column and add it to results
@@ -183,6 +196,9 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 
 // Run
 void Join::run() {
+    time_t begin_timer, end_timer;
+    time(&begin_timer);
+
     left_->require(p_info_.left);
     right_->require(p_info_.right);
     left_->run();
@@ -294,6 +310,11 @@ void Join::run() {
             }
         }
     }
+
+    time(&end_timer);
+    join_time += difftime(end_timer, begin_timer);
+
+    cout << "Join time = " << join_time << " sec." << endl;
 }
 
 // Copy to result
@@ -318,6 +339,8 @@ bool SelfJoin::require(SelectInfo info) {
 
 // Run
 void SelfJoin::run() {
+    time_t begin_timer, end_timer;
+    time(&begin_timer);
 
     input_->require(p_info_.left);
     input_->require(p_info_.right);
@@ -396,6 +419,11 @@ void SelfJoin::run() {
             cur_ind++;
         }
     }
+
+    time(&end_timer);
+    self_join_time += difftime(end_timer, begin_timer);
+
+    cerr << "SelfJoin time = " << self_join_time << " sec." << endl;
 }
 
 // Run
