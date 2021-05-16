@@ -5,7 +5,6 @@
 
 #include <cassert>
 #include <iostream>
-#include <time.h>
 
 #define NUM_THREADS 24
 #define DEPTH_WORTHY_PARALLELIZATION 3
@@ -84,8 +83,7 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 
 // Run
 void FilterScan::run() {
-    time_t begin_timer, end_timer;
-    time(&begin_timer);
+    double begin_time = omp_get_wtime(), end_time;
 
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
@@ -153,8 +151,8 @@ void FilterScan::run() {
         }
     }
 
-    time(&end_timer);
-    filter_time += difftime(end_timer, begin_timer);
+    end_time = omp_get_wtime();
+    filter_time += (end_time - begin_time);
 }
 
 // Require a column and add it to results
@@ -194,8 +192,7 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 
 // Run
 void Join::run() {
-    time_t begin_timer, end_timer;
-    time(&begin_timer);
+    double begin_time = omp_get_wtime(), end_time;
 
     left_->require(p_info_.left);
     right_->require(p_info_.right);
@@ -281,9 +278,9 @@ void Join::run() {
 //        }
 //    }
 
-    time(&end_timer);
-    join_probing_time += difftime(end_timer, begin_timer);
-    time(&begin_timer);
+    end_time = omp_get_wtime();
+    join_probing_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
     // Materialization phase
     #pragma omp parallel num_threads(NUM_THREADS)
@@ -313,8 +310,8 @@ void Join::run() {
         }
     }
 
-    time(&end_timer);
-    join_materialization_time += difftime(end_timer, begin_timer);
+    end_time = omp_get_wtime();
+    self_join_materialization_time += (end_time - begin_time);
 }
 
 // Copy to result
@@ -339,8 +336,7 @@ bool SelfJoin::require(SelectInfo info) {
 
 // Run
 void SelfJoin::run() {
-    time_t begin_timer, end_timer;
-    time(&begin_timer);
+    double begin_time = omp_get_wtime(), end_time;
 
     input_->require(p_info_.left);
     input_->require(p_info_.right);
@@ -390,9 +386,9 @@ void SelfJoin::run() {
         thread_result_sizes[thread_id] = thread_selected_ids[thread_id].size();
     }
 
-    time(&end_timer);
-    self_join_probing_time += difftime(end_timer, begin_timer);
-    time(&begin_timer);
+    end_time = omp_get_wtime();
+    join_probing_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
     // Reduction
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
@@ -424,8 +420,8 @@ void SelfJoin::run() {
         }
     }
 
-    time(&end_timer);
-    self_join_materialization_time += difftime(end_timer, begin_timer);
+    end_time = omp_get_wtime();
+    self_join_materialization_time += (end_time - begin_time);
 }
 
 // Run
