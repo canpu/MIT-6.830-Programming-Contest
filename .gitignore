@@ -56,10 +56,12 @@ cmake-build-*
 #OS X specific files.
 .DS_store
 
-
+workloads
 
 src/main/harness.cpp
 r1.tbl
 r1.sql
 r1
 src/main/harness.cpp
+submission.tar.gz
+run_test_harness.sh

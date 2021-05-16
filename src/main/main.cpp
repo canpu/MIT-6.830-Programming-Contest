@@ -2,6 +2,7 @@
 
 #include "joiner.h"
 #include "parser.h"
+#include <vector>
 
 int main(int argc, char *argv[]) {
     Joiner joiner;
@@ -15,6 +16,11 @@ int main(int argc, char *argv[]) {
 
     // Preparation phase (not timed)
     // Build histograms, indexes,...
+    // TOOD: iterate over all relations and columns in joiner, and build maps for them
+    // TODO: iterate over all relations and columns in joiner, and build histograms for them
+    for (const Relation &relation : joiner.relations()) {
+
+    }
 
     QueryInfo i;
     while (getline(std::cin, line)) {

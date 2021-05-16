@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <set>
 
 using RelationId = unsigned;
 
@@ -14,6 +16,8 @@ class Relation {
         uint64_t size_;
         /// The join column containing the keys
         std::vector<uint64_t *> columns_;
+        //// Hash tables
+        std::unordered_map<unsigned, std::unordered_map<uint64_t, std::set<unsigned>>> maps;
 
     public:
         /// Constructor without mmap
@@ -40,6 +44,11 @@ class Relation {
         uint64_t size() const { return size_; }
         /// The join column containing the keys
         const std::vector<uint64_t *> &columns() const { return columns_; }
+
+        /// Build Hash maps (used after loading)
+        void buildHashMaps();
+        void buildHashMap(unsigned col_id);
+        const std::unordered_map<uint64_t, std::set<unsigned>> &getHashMap(unsigned col_id);
 
     private:
         /// Loads data from a file
