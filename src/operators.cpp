@@ -301,14 +301,14 @@ void Join::run() {
     #pragma omp parallel num_threads(num_threads)
     {
         uint64_t thread_id = omp_get_thread_num();
-        vector<size_t> &left_ids = thread_left_selected[thread_id];
-        vector<size_t> &right_ids = thread_right_selected[thread_id];
-        size_t t_size = thread_sizes[thread_id];
+        vector<uint64_t> &left_ids = thread_left_selected[thread_id];
+        vector<uint64_t> &right_ids = thread_right_selected[thread_id];
+        uint64_t t_size = thread_sizes[thread_id];
         size_t cur_ind = thread_cum_sizes[thread_id];
 
         for (uint64_t i = 0; i < t_size; ++i) {
-            size_t left_id = left_ids[i];
-            size_t right_id = right_ids[i];
+            uint64_t left_id = left_ids[i];
+            uint64_t right_id = right_ids[i];
             for (unsigned cId = 0; cId < left_num_cols; ++cId) {
                 tmp_results_[cId][cur_ind] = copy_left_data_[cId][left_id];
             }
