@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
       }
 
       // Creates optimized predicate order vector
+      // Orders based on max of estimated cardinalities of predicate
       std::vector<PredicateInfo> predicateOrder;
       std::vector<unsigned> estimatedCardinalities;
       
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
         auto predicateIt = predicateOrder.begin();
         auto cardinalitiesIt = estimatedCardinalities.begin();
         
-        unsigned estimatedCardinality = filterSizes[leftId] * filterSizes[rightId];
+        unsigned estimatedCardinality = std::max(filterSizes[leftId], filterSizes[rightId]);
         
         for (unsigned i = 0; i < estimatedCardinalities.size(); i++) {
           if (estimatedCardinality < estimatedCardinalities[i]) {
@@ -87,16 +88,9 @@ int main(int argc, char *argv[]) {
 
         estimatedCardinalities.push_back(estimatedCardinality);
         predicateOrder.push_back(predicateInfo);
-        
-        /*
-        std::cout << leftId;
-        std::cout << ",";
-        std::cout << rightId;
-        std::cout << " ";
-        */
       }
 
-      //std::cout << "\n";
+      // Pass predicate order into join
       std::cout << joiner.join(i, predicateOrder);
     }
 }
