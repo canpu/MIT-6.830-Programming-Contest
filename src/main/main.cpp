@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
         std::cout << joiner.join(i);
     }
 
-    *total_time += (omp_get_wtime() - start);
+    *total_time = (omp_get_wtime() - start);
     display_time();
 
     return 0;

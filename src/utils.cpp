@@ -109,6 +109,8 @@ void reset_time() {
     join_build_time = 0.0;
     join_materialization_time = 0.0;
     check_sum_time = 0.0;
+    relation_reading_time = 0.0;
+    relation_writing_time = 0.0;
 }
 
 void display_time() {
