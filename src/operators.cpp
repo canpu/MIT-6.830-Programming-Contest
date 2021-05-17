@@ -240,8 +240,7 @@ void Join::run() {
         hash_maps[tid].reserve(left_size_per_thread * RESERVE_FACTOR);
 
         for (uint64_t i = 0; i < left_input_size; ++i) {
-            uint64_t remainder = left_key_column[i] % num_threads;
-            if (remainder == tid) {
+            if (left_key_column[i] % num_threads == tid) {
                 hash_maps[tid].emplace(left_key_column[i] / num_threads, i);
             }
         }
@@ -271,8 +270,7 @@ void Join::run() {
 
         for (uint64_t right_id = start_ind; right_id < end_ind; ++right_id) {
             auto right_key_val = right_key_column[right_id];
-            uint64_t remainder = right_key_val % num_threads;
-            HT &hashmap = hash_maps[remainder];
+            HT &hashmap = hash_maps[right_key_val % num_threads];
             auto range = hashmap.equal_range(right_key_val/num_threads);
             for (auto iter = range.first; iter != range.second; ++iter) {
                 uint64_t left_id = iter->second;
