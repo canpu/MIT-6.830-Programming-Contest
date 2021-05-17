@@ -69,3 +69,5 @@ r1
 src/main/harness.cpp
 submission.tar.gz
 run_test_harness.sh
+CMakeCache.txt
+CMakeLists.txt
