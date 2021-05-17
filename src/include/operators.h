@@ -117,8 +117,6 @@ class Join : public Operator {
 
         using HT = std::unordered_multimap<uint64_t, uint64_t>;
 
-        /// The hash table for the join
-        HT hash_table_;
         /// Columns that have to be materialized
         std::unordered_set<SelectInfo> requested_columns_;
         /// Left/right columns that have been requested
@@ -200,7 +198,3 @@ class Checksum : public Operator {
 
         const std::vector<uint64_t> &check_sums() { return check_sums_; }
 };
-
-void reset_time();
-
-void display_time();
