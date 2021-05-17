@@ -3,6 +3,10 @@
 #include "joiner.h"
 #include "parser.h"
 #include <vector>
+#include "utils.h"
+#include "omp.h"
+
+double * total_time = get_total_time();
 
 int main(int argc, char *argv[]) {
     Joiner joiner;
@@ -20,6 +24,9 @@ int main(int argc, char *argv[]) {
     // TODO: iterate over all relations and columns in joiner, and build histograms for them
 
     // Build histograms
+    reset_time();
+    double start = omp_get_wtime();
+    
     auto relations = &joiner.relations();
 
     std::vector<std::vector<Histogram>> relationHistograms;
@@ -32,6 +39,7 @@ int main(int argc, char *argv[]) {
     }
     
     // Find most restrictive filters
+
     QueryInfo i;
 
     while (getline(std::cin, line)) {
@@ -93,4 +101,8 @@ int main(int argc, char *argv[]) {
       // Pass predicate order into join
       std::cout << joiner.join(i, predicateOrder);
     }
+    *total_time = (omp_get_wtime() - start);
+    display_time();
+
+    return 0;
 }

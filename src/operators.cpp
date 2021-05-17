@@ -2,19 +2,26 @@
 #include <omp.h>
 #include <set>
 #include <utility>
+#include "utils.h"
 
 #include <cassert>
 #include <iostream>
-#include <time.h>
 
-#define NUM_THREADS 24
-#define DEPTH_WORTHY_PARALLELIZATION 3
-
-static double filter_time;
-static double join_materialization_time, join_probing_time;
-static double self_join_materialization_time, self_join_probing_time;
+#define NUM_THREADS 48
+#define DEPTH_WORTHY_PARALLELIZATION 1
+#define RESERVE_FACTOR 3
 
 using namespace::std;
+
+double *join_prep_time = get_join_prep_time(),
+       *join_build_time = get_join_build_time(),
+       *join_probing_time = get_join_probing_time(),
+       *join_materialization_time = get_join_materialization_time(),
+       *self_join_prep_time = get_self_join_prep_time(),
+       *self_join_probing_time = get_self_join_probing_time(),
+       *self_join_materialization_time = get_self_join_materialization_time(),
+       *check_sum_time = get_checksum_time(),
+       *filter_time = get_filter_time();
 
 // Get materialized results
 std::vector<uint64_t *> Operator::getResults() {
@@ -62,14 +69,6 @@ bool FilterScan::require(SelectInfo info) {
     return true;
 }
 
-// Copy to result
-void FilterScan::copy2Result(uint64_t id) {
-    size_t input_data_size = input_data_.size();
-    for (unsigned cId = 0; cId < input_data_size; ++cId)
-        tmp_results_[cId].push_back(input_data_[cId][id]);
-    ++result_size_;
-}
-
 // Apply filter
 bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
     auto compare_col = relation_.columns()[f.filter_column.col_id];
@@ -84,8 +83,7 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 
 // Run
 void FilterScan::run() {
-    time_t begin_timer, end_timer;
-    time(&begin_timer);
+    double begin_time = omp_get_wtime(), end_time;
 
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
@@ -153,8 +151,8 @@ void FilterScan::run() {
         }
     }
 
-    time(&end_timer);
-    filter_time += difftime(end_timer, begin_timer);
+    end_time = omp_get_wtime();
+    *filter_time += (end_time - begin_time);
 }
 
 // Require a column and add it to results
@@ -177,30 +175,16 @@ bool Join::require(SelectInfo info) {
     return true;
 }
 
-// Copy to result
-void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
-    unsigned rel_col_id = 0;
-
-    size_t left_num_cols = copy_left_data_.size();
-    for (unsigned cId = 0; cId < left_num_cols; ++cId)
-        tmp_results_[cId].push_back(copy_left_data_[cId][left_id]);
-
-    size_t right_num_cols = copy_right_data_.size();
-    for (unsigned cId = 0; cId < right_num_cols; ++cId)
-        tmp_results_[left_num_cols+cId].push_back(copy_right_data_[cId][right_id]);
-
-    ++result_size_;
-}
-
 // Run
 void Join::run() {
-    time_t begin_timer, end_timer;
-    time(&begin_timer);
 
     left_->require(p_info_.left);
     right_->require(p_info_.right);
     left_->run();
     right_->run();
+
+    // Preparation phase
+    double begin_time = omp_get_wtime(), end_time;
 
     // Use smaller input_ for build
     if (left_->result_size() > right_->result_size()) {
@@ -226,103 +210,117 @@ void Join::run() {
     auto left_col_id = left_->resolve(p_info_.left);
     auto right_col_id = right_->resolve(p_info_.right);
 
-    // Build phase
-    auto left_key_column = left_input_data[left_col_id];
-    hash_table_.reserve(left_->result_size() * 2);
     uint64_t left_input_size = left_->result_size();
-    for (uint64_t i = 0, limit = i + left_input_size; i != limit; ++i) {
-        hash_table_.emplace(left_key_column[i], i);
-    }
-
-    // Probe phase
+    auto left_key_column = left_input_data[left_col_id];
     size_t left_num_cols = copy_left_data_.size();
     size_t right_num_cols = copy_right_data_.size();
     size_t tot_num_cols = left_num_cols + right_num_cols;
     auto right_key_column = right_input_data[right_col_id];
     uint64_t right_input_size = right_->result_size();
-    vector<uint64_t> left_selected, right_selected;
-    vector<uint64_t> thread_left_selected[NUM_THREADS];
-    vector<uint64_t> thread_right_selected[NUM_THREADS];
 
-    #pragma omp parallel num_threads(NUM_THREADS)
+    uint64_t right_size_per_thread;
+    uint64_t num_threads;
+    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+        num_threads = 1;
+        right_size_per_thread = right_input_size;
+    } else {
+        num_threads = NUM_THREADS;
+        right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
+    }
+    uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
+    end_time = omp_get_wtime();
+    *join_prep_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
+
+    // Build phase
+    vector<HT> hash_maps(num_threads);
+    #pragma omp parallel num_threads(num_threads)
+    {
+        uint64_t tid = omp_get_thread_num();
+        hash_maps[tid].reserve(left_size_per_thread * RESERVE_FACTOR);
+
+        for (uint64_t i = 0; i < left_input_size; ++i) {
+            if (left_key_column[i] % num_threads == tid) {
+                hash_maps[tid].emplace(left_key_column[i] / num_threads, i);
+            }
+        }
+    }
+
+    end_time = omp_get_wtime();
+    *join_build_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
+
+    // Probe phase
+    vector<vector<size_t>> thread_selected_ids(num_threads);
+    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
+
+    vector<vector<uint64_t>> thread_left_selected(num_threads);
+    vector<vector<uint64_t>> thread_right_selected(num_threads);
+    vector<uint64_t> thread_sizes(num_threads);
+
+    #pragma omp parallel num_threads(num_threads)
     {
         uint64_t thread_id = omp_get_thread_num();
+        thread_left_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
+        thread_right_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
+        uint64_t start_ind = thread_id * right_size_per_thread;
+        uint64_t end_ind = (thread_id + 1) * right_size_per_thread;
+        if (end_ind > right_input_size)
+            end_ind = right_input_size;
 
-        for (uint64_t right_id = thread_id; right_id < right_input_size; right_id += NUM_THREADS) {
+        for (uint64_t right_id = start_ind; right_id < end_ind; ++right_id) {
             auto right_key_val = right_key_column[right_id];
-            auto range = hash_table_.equal_range(right_key_val);
+            HT &hashmap = hash_maps[right_key_val % num_threads];
+            auto range = hashmap.equal_range(right_key_val/num_threads);
             for (auto iter = range.first; iter != range.second; ++iter) {
                 uint64_t left_id = iter->second;
                 thread_left_selected[thread_id].push_back(left_id);
                 thread_right_selected[thread_id].push_back(right_id);
             }
         }
+        thread_sizes[thread_id] = thread_right_selected[thread_id].size();
     }
 
-    for (uint64_t i = 0; i < NUM_THREADS; ++i) {
-        left_selected.insert(left_selected.end(), thread_left_selected[i].begin(), thread_left_selected[i].end());
-        right_selected.insert(right_selected.end(), thread_right_selected[i].begin(), thread_right_selected[i].end());
-        result_size_ += thread_right_selected[i].size();
+    // Reduction
+    vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
+    result_size_ = 0;
+    for (uint64_t t = 0; t < num_threads; ++t) {
+        result_size_ += thread_sizes[t];
+        thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_sizes[t];
     }
 
-////    #pragma omp parallel for
-//    for (uint64_t right_id = 0; right_id < right_input_size; ++right_id) {
-//        auto right_key_val = right_key_column[right_id];
-//        auto range = hash_table_.equal_range(right_key_val);
-//        vector<uint64_t> left_selected_private, right_selected_private;
-//        for (auto iter = range.first; iter != range.second; ++iter) {
-//            uint64_t left_id = iter->second;
-////            #pragma omp critical
-//            {
-//                left_selected.push_back(left_id);
-//                right_selected.push_back(right_id);
-//                ++result_size_;
-//            }
-//        }
-//    }
-
-    time(&end_timer);
-    join_probing_time += difftime(end_timer, begin_timer);
-    time(&begin_timer);
+    end_time = omp_get_wtime();
+    *join_probing_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
     // Materialization phase
-    #pragma omp parallel num_threads(NUM_THREADS)
+    for (size_t c = 0; c < tot_num_cols; ++c) {
+        tmp_results_[c].reserve(result_size_);
+    }
+
+    #pragma omp parallel num_threads(num_threads)
     {
-        uint64_t num_threads = omp_get_num_threads();
         uint64_t thread_id = omp_get_thread_num();
+        vector<size_t> &left_ids = thread_left_selected[thread_id];
+        vector<size_t> &right_ids = thread_right_selected[thread_id];
+        size_t t_size = thread_sizes[thread_id];
+        size_t cur_ind = thread_cum_sizes[thread_id];
 
-        for (uint64_t col = thread_id; col < left_num_cols; col += num_threads) {
-            tmp_results_[col].reserve(result_size_);
-            uint64_t *col_data = tmp_results_[col].data();
-            unsigned id;
-            for (size_t i = 0; i < result_size_; ++i) {
-                id = left_selected[i];
-                col_data[i] = copy_left_data_[col][id];
+        for (uint64_t i = 0; i < t_size; ++i) {
+            size_t left_id = left_ids[i];
+            size_t right_id = right_ids[i];
+            for (unsigned cId = 0; cId < left_num_cols; ++cId) {
+                tmp_results_[cId][cur_ind] = copy_left_data_[cId][left_id];
             }
-        }
-
-        for (uint64_t col = thread_id; col < right_num_cols; col += num_threads) {
-            uint64_t global_col = left_num_cols + col;
-            tmp_results_[global_col].reserve(result_size_);
-            uint64_t *col_data = tmp_results_[left_num_cols + col].data();
-            unsigned id;
-            for (size_t i = 0; i < result_size_; ++i) {
-                id = right_selected[i];
-                col_data[i] = copy_right_data_[col][id];
+            for (unsigned cId = 0; cId < right_num_cols; ++cId) {
+                tmp_results_[left_num_cols+cId][cur_ind] = copy_right_data_[cId][right_id];
             }
+            cur_ind++;
         }
     }
 
-    time(&end_timer);
-    join_materialization_time += difftime(end_timer, begin_timer);
-}
-
-// Copy to result
-void SelfJoin::copy2Result(uint64_t id) {
-    size_t data_size = copy_data_.size();
-    for (unsigned cId = 0; cId < data_size; ++cId)
-        tmp_results_[cId].push_back(copy_data_[cId][id]);
-    ++result_size_;
+    end_time = omp_get_wtime();
+    *join_materialization_time += (end_time - begin_time);
 }
 
 // Require a column and add it to results
@@ -339,12 +337,12 @@ bool SelfJoin::require(SelectInfo info) {
 
 // Run
 void SelfJoin::run() {
-    time_t begin_timer, end_timer;
-    time(&begin_timer);
 
     input_->require(p_info_.left);
     input_->require(p_info_.right);
     input_->run();
+
+    double begin_time = omp_get_wtime(), end_time;
 
     input_data_ = input_->getResults();
 
@@ -361,7 +359,12 @@ void SelfJoin::run() {
     auto left_col = input_data_[left_col_id];
     auto right_col = input_data_[right_col_id];
 
+    end_time = omp_get_wtime();
+    *self_join_prep_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
+
     // Probing
+
     uint64_t size_per_thread;
     uint64_t num_threads;
     if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
@@ -379,20 +382,18 @@ void SelfJoin::run() {
         thread_selected_ids[thread_id] = vector<size_t> ();
         thread_selected_ids[thread_id].reserve(size_per_thread);
 
-        uint64_t col_offset = thread_id * size_per_thread;
-        uint64_t ii;
+        uint64_t start_ind = thread_id * size_per_thread;
+        uint64_t end_ind = start_ind + size_per_thread;
+        if (end_ind > input_data_size)
+            end_ind = input_data_size;
 
-        for (uint64_t i = col_offset; i < col_offset + size_per_thread && i < input_data_size; ++i) {
+        for (uint64_t i = start_ind; i < end_ind; ++i) {
             if (left_col[i] == right_col[i]) {
                 thread_selected_ids[thread_id].push_back(i);
             }
         }
         thread_result_sizes[thread_id] = thread_selected_ids[thread_id].size();
     }
-
-    time(&end_timer);
-    self_join_probing_time += difftime(end_timer, begin_timer);
-    time(&begin_timer);
 
     // Reduction
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
@@ -401,6 +402,10 @@ void SelfJoin::run() {
         thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
         result_size_ += thread_result_sizes[t];
     }
+
+    end_time = omp_get_wtime();
+    *self_join_probing_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
     // Materialization
     for (size_t c = 0; c < tot_num_cols; ++c) {
@@ -424,8 +429,8 @@ void SelfJoin::run() {
         }
     }
 
-    time(&end_timer);
-    self_join_materialization_time += difftime(end_timer, begin_timer);
+    end_time = omp_get_wtime();
+    *self_join_materialization_time += (end_time - begin_time);
 }
 
 // Run
@@ -434,37 +439,33 @@ void Checksum::run() {
         input_->require(sInfo);
     }
     input_->run();
+
+    double begin_time = omp_get_wtime(), end_time;
+
     auto results = input_->getResults();
+    result_size_ = input_->result_size();
 
-    for (auto &sInfo : col_info_) {
-        auto col_id = input_->resolve(sInfo);
-        auto result_col = results[col_id];
-        uint64_t sum = 0;
-        result_size_ = input_->result_size();
+    auto old_num_cols = check_sums_.size();
+    auto num_cols = col_info_.size();
+    check_sums_.resize(old_num_cols + num_cols);
 
-        for (auto iter = result_col, limit = iter + input_->result_size();
-            iter != limit;
-            ++iter)
-            sum += *iter;
-        check_sums_.push_back(sum);
+    uint64_t num_threads = result_size_ < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION ? 1 : NUM_THREADS;
+
+    #pragma omp parallel num_threads(num_threads)
+    {
+        for (size_t c = omp_get_thread_num(); c < num_cols; c += num_threads) {
+            const SelectInfo &sInfo = col_info_[c];
+            auto col_id = input_->resolve(sInfo);
+            uint64_t *result_col = results[col_id];
+            uint64_t sum = 0;
+            uint64_t *last = result_col + input_->result_size();
+
+            for (uint64_t *iter = result_col; iter != last; ++iter)
+                sum += *iter;
+            check_sums_[old_num_cols + c] = (sum);
+        }
     }
-}
 
-// Timer
-void reset_time() {
-    filter_time = 0.0;
-    self_join_probing_time = 0.0;
-    self_join_materialization_time = 0.0;
-    join_probing_time = 0.0;
-    join_materialization_time = 0.0;
-}
-
-void display_time() {
-    cerr << "FilterScan time = " << filter_time << " sec." << endl;
-    cerr << "SelfJoin time = " << self_join_probing_time + self_join_materialization_time  << " sec." << endl;
-    cerr << "\tProbing time = " << self_join_probing_time << " sec." << endl;
-    cerr << "\tMaterialization time = " << self_join_materialization_time << " sec." << endl;
-    cerr << "Join time = " << join_probing_time + join_materialization_time << " sec." << endl;
-    cerr << "\tProbing time = " << join_probing_time << " sec." << endl;
-    cerr << "\tMaterialization time = " << join_materialization_time << " sec." << endl;
+    end_time = omp_get_wtime();
+    *check_sum_time += (end_time - begin_time);
 }
