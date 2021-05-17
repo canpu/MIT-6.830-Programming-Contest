@@ -7,10 +7,11 @@
 #include <iostream>
 
 #define NUM_THREADS 48
-#define DEPTH_WORTHY_PARALLELIZATION 2
+#define DEPTH_WORTHY_PARALLELIZATION 1
 #define RESERVE_FACTOR 4
 
 static double filter_time = 0.0;
+static double join_prep_time = 0.0, self_join_prep_time = 0.0;
 static double join_materialization_time = 0.0, join_probing_time = 0.0, join_build_time = 0.0;
 static double self_join_materialization_time = 0.0, self_join_probing_time = 0.0;
 
@@ -199,6 +200,8 @@ void Join::run() {
     left_->run();
     right_->run();
 
+    double begin_time = omp_get_wtime(), end_time;
+
     // Use smaller input_ for build
     if (left_->result_size() > right_->result_size()) {
         std::swap(left_, right_);
@@ -225,13 +228,15 @@ void Join::run() {
 
     uint64_t left_input_size = left_->result_size();
 
-    // Build phase
-    double begin_time = omp_get_wtime(), end_time;
+    end_time = omp_get_wtime();
+    join_prep_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
 
+    // Build phase
     auto left_key_column = left_input_data[left_col_id];
 
     hash_table_.reserve(left_input_size * RESERVE_FACTOR);
-    for (uint64_t i = 0, limit = i + left_input_size; i != limit; ++i) {
+    for (uint64_t i = 0; i < left_input_size; ++i) {
         hash_table_.emplace(left_key_column[i], i);
     }
 
@@ -355,6 +360,8 @@ void SelfJoin::run() {
     input_->require(p_info_.right);
     input_->run();
 
+    double begin_time = omp_get_wtime(), end_time;
+
     input_data_ = input_->getResults();
 
     for (auto &iu : required_IUs_) {
@@ -370,8 +377,11 @@ void SelfJoin::run() {
     auto left_col = input_data_[left_col_id];
     auto right_col = input_data_[right_col_id];
 
+    end_time = omp_get_wtime();
+    self_join_prep_time += (end_time - begin_time);
+    begin_time = omp_get_wtime();
+
     // Probing
-    double begin_time = omp_get_wtime(), end_time;
 
     uint64_t size_per_thread;
     uint64_t num_threads;
@@ -466,20 +476,28 @@ void Checksum::run() {
 // Timer
 void reset_time() {
     filter_time = 0.0;
+    self_join_prep_time = 0.0;
     self_join_probing_time = 0.0;
     self_join_materialization_time = 0.0;
+    join_prep_time = 0.0;
     join_probing_time = 0.0;
     join_build_time = 0.0;
     join_materialization_time = 0.0;
 }
 
 void display_time() {
-    cerr << "FilterScan time = " << filter_time << " sec." << endl;
-    cerr << "SelfJoin time = " << self_join_probing_time + self_join_materialization_time  << " sec." << endl;
-    cerr << "\tProbing time = " << self_join_probing_time << " sec." << endl;
-    cerr << "\tMaterialization time = " << self_join_materialization_time << " sec." << endl;
-    cerr << "Join time = " << join_probing_time + join_materialization_time + join_build_time << " sec." << endl;
-    cerr << "\tBuilding time = " << join_build_time << " sec." << endl;
-    cerr << "\tProbing time = " << join_probing_time << " sec." << endl;
-    cerr << "\tMaterialization time = " << join_materialization_time << " sec." << endl;
+    double join_time = join_prep_time + join_probing_time + join_materialization_time + join_build_time;
+    double self_join_time = self_join_prep_time + self_join_probing_time + self_join_materialization_time;
+    cerr << endl;
+    cerr << "Total tracked time = " << filter_time + self_join_time + join_time << " sec." << endl;
+    cerr << "    FilterScan time = " << filter_time << " sec." << endl;
+    cerr << "    SelfJoin time = " << self_join_time  << " sec." << endl;
+    cerr << "        Preparation time = " << self_join_prep_time << " sec." << endl;
+    cerr << "        Probing time = " << self_join_probing_time << " sec." << endl;
+    cerr << "        Materialization time = " << self_join_materialization_time << " sec." << endl;
+    cerr << "    Join time = " << join_time << " sec." << endl;
+    cerr << "        Preparation time = " << join_prep_time << " sec." << endl;
+    cerr << "        Building time = " << join_build_time << " sec." << endl;
+    cerr << "        Probing time = " << join_probing_time << " sec." << endl;
+    cerr << "        Materialization time = " << join_materialization_time << " sec." << endl;
 }

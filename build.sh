@@ -6,6 +6,6 @@ cd $DIR
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j24
+make -j48
 cd $DIR
 bash compile.sh
