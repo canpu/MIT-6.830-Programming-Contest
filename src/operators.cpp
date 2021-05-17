@@ -462,18 +462,27 @@ void Checksum::run() {
     double begin_time = omp_get_wtime(), end_time;
 
     auto results = input_->getResults();
+    result_size_ = input_->result_size();
 
-    for (auto &sInfo : col_info_) {
-        auto col_id = input_->resolve(sInfo);
-        auto result_col = results[col_id];
-        uint64_t sum = 0;
-        result_size_ = input_->result_size();
+    auto old_num_cols = check_sums_.size();
+    auto num_cols = col_info_.size();
+    check_sums_.resize(old_num_cols + num_cols);
 
-        for (auto iter = result_col, limit = iter + input_->result_size();
-            iter != limit;
-            ++iter)
-            sum += *iter;
-        check_sums_.push_back(sum);
+    uint64_t num_threads = result_size_ < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION ? 1 : NUM_THREADS;
+
+    #pragma omp parallel num_threads(num_threads)
+    {
+        for (size_t c = omp_get_thread_num(); c < num_cols; c += num_threads) {
+            SelectInfo sInfo = col_info_[c];
+            auto col_id = input_->resolve(sInfo);
+            uint64_t *result_col = results[col_id];
+            uint64_t sum = 0;
+            uint64_t *last = result_col + input_->result_size();
+
+            for (uint64_t *iter = result_col; iter != last; ++iter)
+                sum += *iter;
+            check_sums_[old_num_cols + c] = (sum);
+        }
     }
 
     end_time = omp_get_wtime();
