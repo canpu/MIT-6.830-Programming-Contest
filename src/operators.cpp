@@ -14,6 +14,7 @@ static double filter_time = 0.0;
 static double join_prep_time = 0.0, self_join_prep_time = 0.0;
 static double join_materialization_time = 0.0, join_probing_time = 0.0, join_build_time = 0.0;
 static double self_join_materialization_time = 0.0, self_join_probing_time = 0.0;
+static double check_sum_time = 0.0;
 
 using namespace::std;
 
@@ -457,6 +458,9 @@ void Checksum::run() {
         input_->require(sInfo);
     }
     input_->run();
+
+    double begin_time = omp_get_wtime(), end_time;
+
     auto results = input_->getResults();
 
     for (auto &sInfo : col_info_) {
@@ -471,6 +475,9 @@ void Checksum::run() {
             sum += *iter;
         check_sums_.push_back(sum);
     }
+
+    end_time = omp_get_wtime();
+    check_sum_time += (end_time - begin_time);
 }
 
 // Timer
@@ -483,6 +490,7 @@ void reset_time() {
     join_probing_time = 0.0;
     join_build_time = 0.0;
     join_materialization_time = 0.0;
+    check_sum_time = 0.0;
 }
 
 void display_time() {
@@ -500,4 +508,5 @@ void display_time() {
     cerr << "        Building time = " << join_build_time << " sec." << endl;
     cerr << "        Probing time = " << join_probing_time << " sec." << endl;
     cerr << "        Materialization time = " << join_materialization_time << " sec." << endl;
+    cerr << "    Checksum time = " << check_sum_time << " sec." << endl;
 }
