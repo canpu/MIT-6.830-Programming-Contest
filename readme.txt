@@ -1,17 +1,20 @@
-Team Name:
+Team Name: LECture
 
 Member 1
-Name:
-MIT email:
+Name: Can Pu
+MIT email: pucan@mit.edu
 
 Member 2
-Name:
-MIT email:
+Name: Lige Liu
+MIT email: xtllg@mit.edu
 
 Member 3
-Name:
-MIT email:
+Name: Ellen Wang
+MIT email: ellenwan@mit.edu
 
-Member 4
-Name:
-MIT email:
+
+Solution Description:
+TODO
+
+Thirdy Party Code:
+OpenMP
