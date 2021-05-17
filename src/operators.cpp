@@ -6,7 +6,7 @@
 #include <cassert>
 #include <iostream>
 
-#define NUM_THREADS 12
+#define NUM_THREADS 48
 #define DEPTH_WORTHY_PARALLELIZATION 2
 #define RESERVE_FACTOR 4
 
