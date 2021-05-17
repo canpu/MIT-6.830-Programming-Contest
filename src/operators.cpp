@@ -9,7 +9,7 @@
 
 #define NUM_THREADS 48
 #define DEPTH_WORTHY_PARALLELIZATION 1
-#define RESERVE_FACTOR 4
+#define RESERVE_FACTOR 3
 
 using namespace::std;
 
@@ -67,14 +67,6 @@ bool FilterScan::require(SelectInfo info) {
         select_to_result_col_id_[info] = colId;
     }
     return true;
-}
-
-// Copy to result
-void FilterScan::copy2Result(uint64_t id) {
-    size_t input_data_size = input_data_.size();
-    for (unsigned cId = 0; cId < input_data_size; ++cId)
-        tmp_results_[cId].push_back(input_data_[cId][id]);
-    ++result_size_;
 }
 
 // Apply filter
@@ -183,21 +175,6 @@ bool Join::require(SelectInfo info) {
     return true;
 }
 
-// Copy to result
-void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
-    unsigned rel_col_id = 0;
-
-    size_t left_num_cols = copy_left_data_.size();
-    for (unsigned cId = 0; cId < left_num_cols; ++cId)
-        tmp_results_[cId].push_back(copy_left_data_[cId][left_id]);
-
-    size_t right_num_cols = copy_right_data_.size();
-    for (unsigned cId = 0; cId < right_num_cols; ++cId)
-        tmp_results_[left_num_cols+cId].push_back(copy_right_data_[cId][right_id]);
-
-    ++result_size_;
-}
-
 // Run
 void Join::run() {
 
@@ -206,6 +183,7 @@ void Join::run() {
     left_->run();
     right_->run();
 
+    // Preparation phase
     double begin_time = omp_get_wtime(), end_time;
 
     // Use smaller input_ for build
@@ -233,17 +211,40 @@ void Join::run() {
     auto right_col_id = right_->resolve(p_info_.right);
 
     uint64_t left_input_size = left_->result_size();
+    auto left_key_column = left_input_data[left_col_id];
+    size_t left_num_cols = copy_left_data_.size();
+    size_t right_num_cols = copy_right_data_.size();
+    size_t tot_num_cols = left_num_cols + right_num_cols;
+    auto right_key_column = right_input_data[right_col_id];
+    uint64_t right_input_size = right_->result_size();
 
+    uint64_t right_size_per_thread;
+    uint64_t num_threads;
+    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+        num_threads = 1;
+        right_size_per_thread = right_input_size;
+    } else {
+        num_threads = NUM_THREADS;
+        right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
+    }
+    uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
     end_time = omp_get_wtime();
     *join_prep_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Build phase
-    auto left_key_column = left_input_data[left_col_id];
+    vector<HT> hash_maps(num_threads);
+    #pragma omp parallel num_threads(num_threads)
+    {
+        uint64_t tid = omp_get_thread_num();
+        hash_maps[tid].reserve(left_size_per_thread * RESERVE_FACTOR);
 
-    hash_table_.reserve(left_input_size * RESERVE_FACTOR);
-    for (uint64_t i = 0; i < left_input_size; ++i) {
-        hash_table_.emplace(left_key_column[i], i);
+        for (uint64_t i = 0; i < left_input_size; ++i) {
+            uint64_t remainder = left_key_column[i] % num_threads;
+            if (remainder == tid) {
+                hash_maps[tid].emplace(left_key_column[i] / num_threads, i);
+            }
+        }
     }
 
     end_time = omp_get_wtime();
@@ -251,21 +252,6 @@ void Join::run() {
     begin_time = omp_get_wtime();
 
     // Probe phase
-    size_t left_num_cols = copy_left_data_.size();
-    size_t right_num_cols = copy_right_data_.size();
-    size_t tot_num_cols = left_num_cols + right_num_cols;
-    auto right_key_column = right_input_data[right_col_id];
-    uint64_t right_input_size = right_->result_size();
-
-    uint64_t size_per_thread;
-    uint64_t num_threads;
-    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        num_threads = 1;
-        size_per_thread = right_input_size;
-    } else {
-        num_threads = NUM_THREADS;
-        size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
-    }
     vector<vector<size_t>> thread_selected_ids(num_threads);
     vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
 
@@ -278,20 +264,20 @@ void Join::run() {
         uint64_t thread_id = omp_get_thread_num();
         thread_left_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
         thread_right_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
-        uint64_t start_ind = thread_id * size_per_thread;
-        uint64_t end_ind = (thread_id + 1) * size_per_thread;
+        uint64_t start_ind = thread_id * right_size_per_thread;
+        uint64_t end_ind = (thread_id + 1) * right_size_per_thread;
         if (end_ind > right_input_size)
             end_ind = right_input_size;
 
         for (uint64_t right_id = start_ind; right_id < end_ind; ++right_id) {
             auto right_key_val = right_key_column[right_id];
-            for (uint64_t t = 0; t < 1; ++t) {
-                auto range = hash_table_.equal_range(right_key_val);
-                for (auto iter = range.first; iter != range.second; ++iter) {
-                    uint64_t left_id = iter->second;
-                    thread_left_selected[thread_id].push_back(left_id);
-                    thread_right_selected[thread_id].push_back(right_id);
-                }
+            uint64_t remainder = right_key_val % num_threads;
+            HT &hashmap = hash_maps[remainder];
+            auto range = hashmap.equal_range(right_key_val);
+            for (auto iter = range.first; iter != range.second; ++iter) {
+                uint64_t left_id = iter->second;
+                thread_left_selected[thread_id].push_back(left_id);
+                thread_right_selected[thread_id].push_back(right_id);
             }
         }
         thread_sizes[thread_id] = thread_right_selected[thread_id].size();
@@ -337,14 +323,6 @@ void Join::run() {
 
     end_time = omp_get_wtime();
     *join_materialization_time += (end_time - begin_time);
-}
-
-// Copy to result
-void SelfJoin::copy2Result(uint64_t id) {
-    size_t data_size = copy_data_.size();
-    for (unsigned cId = 0; cId < data_size; ++cId)
-        tmp_results_[cId].push_back(copy_data_[cId][id]);
-    ++result_size_;
 }
 
 // Require a column and add it to results

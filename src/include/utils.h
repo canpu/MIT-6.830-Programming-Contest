@@ -22,6 +22,7 @@ void reset_time();
 
 void display_time();
 
+double * get_total_time();
 double * get_filter_time();
 double * get_self_join_prep_time();
 double * get_self_join_probing_time();

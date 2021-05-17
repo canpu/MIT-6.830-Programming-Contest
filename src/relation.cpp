@@ -98,39 +98,6 @@ Relation::Relation(const char *file_name) : owns_memory_(false), size_(0) {
     loadRelation(file_name);
 }
 
-//void Relation::buildHashMaps() {
-//    loadRelation(file_name);
-//    size_t num_columns = columns_.size();
-//    maps.reserve(num_columns);
-//    #pragma omp parallel for
-//    for (size_t c = 0; c < num_columns; ++c) {
-//        // TODO: build hash maps for column c
-//    }
-//}
-
-// Construct hash map for a specific column
-//void Relation::buildHashMap(unsigned col_id) {
-//    unordered_map<uint64_t, set<unsigned>> map;
-//    for (unsigned t = 0; t < size_; ++t) {
-//        uint64_t val = columns_[col_id][t];
-//        if (map.find(val) == map.end()) {
-//            set<unsigned> indices = set<unsigned> ();
-//            indices.emplace(t);
-//            map.insert(indices);
-//        } else {
-//            map[val].emplace(t);
-//        }
-//    }
-//    maps.emplace(col_id, map);
-//}
-
-// Construct hash map for a specific column
-//const unordered_map<uint64_t, set<unsigned>>& Relation::getHashMap(unsigned col_id) {
-//    if (maps.find(col_id) == map.end())
-//        buildHashMap(col_id);
-//    return maps[col_id];
-//}
-
 // Destructor
 Relation::~Relation() {
     if (owns_memory_) {

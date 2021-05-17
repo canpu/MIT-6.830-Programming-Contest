@@ -4,6 +4,9 @@
 #include "parser.h"
 #include <vector>
 #include "utils.h"
+#include "omp.h"
+
+double * total_time = get_total_time();
 
 int main(int argc, char *argv[]) {
     Joiner joiner;
@@ -24,6 +27,7 @@ int main(int argc, char *argv[]) {
     }
 
     reset_time();
+    double start = omp_get_wtime();
 
     QueryInfo i;
     while (getline(std::cin, line)) {
@@ -32,6 +36,7 @@ int main(int argc, char *argv[]) {
         std::cout << joiner.join(i);
     }
 
+    *total_time += (omp_get_wtime() - start);
     display_time();
 
     return 0;
