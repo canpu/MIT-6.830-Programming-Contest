@@ -125,12 +125,12 @@ void display_time() {
     cerr << "    SelfJoin time = " << self_join_time  << " sec." << endl;
     cerr << "        Preparation time = " << self_join_prep_time << " sec." << endl;
     cerr << "        Probing time = " << self_join_probing_time << " sec." << endl;
-    cerr << "        Materialization time = " << self_join_materialization_time << " sec." << endl;
+    cerr << "        Merge time = " << self_join_materialization_time << " sec." << endl;
     cerr << "    Join time = " << join_time << " sec." << endl;
     cerr << "        Preparation time = " << join_prep_time << " sec." << endl;
     cerr << "        Building time = " << join_build_time << " sec." << endl;
     cerr << "        Probing time = " << join_probing_time << " sec." << endl;
-    cerr << "        Materialization time = " << join_materialization_time << " sec." << endl;
+    cerr << "        Merge time = " << join_materialization_time << " sec." << endl;
     cerr << "    Checksum time = " << check_sum_time << " sec." << endl;
     cerr << "    Relation time = " << relation_time << " sec." << endl;
     cerr << "        Reading time = " << relation_reading_time << " sec." << endl;
