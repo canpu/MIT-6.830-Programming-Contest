@@ -6,8 +6,8 @@
 #include <cassert>
 #include <iostream>
 
-#define NUM_THREADS 24
-#define DEPTH_WORTHY_PARALLELIZATION 3
+#define NUM_THREADS 12
+#define DEPTH_WORTHY_PARALLELIZATION 2
 #define RESERVE_FACTOR 4
 
 static double filter_time = 0.0;
@@ -258,11 +258,11 @@ void Join::run() {
     vector<vector<size_t>> thread_selected_ids(num_threads);
     vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
 
-    vector<uint64_t> left_selected, right_selected;
-    vector<uint64_t> thread_left_selected[NUM_THREADS];
-    vector<uint64_t> thread_right_selected[NUM_THREADS];
+    vector<vector<uint64_t>> thread_left_selected(num_threads);
+    vector<vector<uint64_t>> thread_right_selected(num_threads);
+    vector<uint64_t> thread_sizes(num_threads);
 
-    #pragma omp parallel num_threads(NUM_THREADS)
+    #pragma omp parallel num_threads(num_threads)
     {
         uint64_t thread_id = omp_get_thread_num();
         thread_left_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
@@ -283,59 +283,44 @@ void Join::run() {
                 }
             }
         }
+        thread_sizes[thread_id] = thread_right_selected[thread_id].size();
     }
 
-    for (uint64_t i = 0; i < NUM_THREADS; ++i) {
-        left_selected.insert(left_selected.end(), thread_left_selected[i].begin(), thread_left_selected[i].end());
-        right_selected.insert(right_selected.end(), thread_right_selected[i].begin(), thread_right_selected[i].end());
-        result_size_ += thread_right_selected[i].size();
+    // Reduction
+    vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
+    result_size_ = 0;
+    for (uint64_t t = 0; t < num_threads; ++t) {
+        result_size_ += thread_sizes[t];
+        thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_sizes[t];
     }
-
-////    #pragma omp parallel for
-//    for (uint64_t right_id = 0; right_id < right_input_size; ++right_id) {
-//        auto right_key_val = right_key_column[right_id];
-//        auto range = hash_table_.equal_range(right_key_val);
-//        vector<uint64_t> left_selected_private, right_selected_private;
-//        for (auto iter = range.first; iter != range.second; ++iter) {
-//            uint64_t left_id = iter->second;
-////            #pragma omp critical
-//            {
-//                left_selected.push_back(left_id);
-//                right_selected.push_back(right_id);
-//                ++result_size_;
-//            }
-//        }
-//    }
 
     end_time = omp_get_wtime();
     join_probing_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Materialization phase
-    #pragma omp parallel num_threads(NUM_THREADS)
+    for (size_t c = 0; c < tot_num_cols; ++c) {
+        tmp_results_[c].reserve(result_size_);
+    }
+
+    #pragma omp parallel num_threads(num_threads)
     {
-        uint64_t num_threads = omp_get_num_threads();
         uint64_t thread_id = omp_get_thread_num();
+        vector<size_t> &left_ids = thread_left_selected[thread_id];
+        vector<size_t> &right_ids = thread_right_selected[thread_id];
+        size_t t_size = thread_sizes[thread_id];
+        size_t cur_ind = thread_cum_sizes[thread_id];
 
-        for (uint64_t col = thread_id; col < left_num_cols; col += num_threads) {
-            tmp_results_[col].reserve(result_size_);
-            uint64_t *col_data = tmp_results_[col].data();
-            unsigned id;
-            for (size_t i = 0; i < result_size_; ++i) {
-                id = left_selected[i];
-                col_data[i] = copy_left_data_[col][id];
+        for (uint64_t i = 0; i < t_size; ++i) {
+            size_t left_id = left_ids[i];
+            size_t right_id = right_ids[i];
+            for (unsigned cId = 0; cId < left_num_cols; ++cId) {
+                tmp_results_[cId][cur_ind] = copy_left_data_[cId][left_id];
             }
-        }
-
-        for (uint64_t col = thread_id; col < right_num_cols; col += num_threads) {
-            uint64_t global_col = left_num_cols + col;
-            tmp_results_[global_col].reserve(result_size_);
-            uint64_t *col_data = tmp_results_[left_num_cols + col].data();
-            unsigned id;
-            for (size_t i = 0; i < result_size_; ++i) {
-                id = right_selected[i];
-                col_data[i] = copy_right_data_[col][id];
+            for (unsigned cId = 0; cId < right_num_cols; ++cId) {
+                tmp_results_[left_num_cols+cId][cur_ind] = copy_right_data_[cId][right_id];
             }
+            cur_ind++;
         }
     }
 
