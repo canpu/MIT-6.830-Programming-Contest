@@ -273,7 +273,7 @@ void Join::run() {
             auto right_key_val = right_key_column[right_id];
             uint64_t remainder = right_key_val % num_threads;
             HT &hashmap = hash_maps[remainder];
-            auto range = hashmap.equal_range(right_key_val);
+            auto range = hashmap.equal_range(right_key_val/num_threads);
             for (auto iter = range.first; iter != range.second; ++iter) {
                 uint64_t left_id = iter->second;
                 thread_left_selected[thread_id].push_back(left_id);
