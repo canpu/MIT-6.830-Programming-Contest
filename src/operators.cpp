@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <set>
 #include <utility>
+#include "utils.h"
 
 #include <cassert>
 #include <iostream>
@@ -10,13 +11,17 @@
 #define DEPTH_WORTHY_PARALLELIZATION 1
 #define RESERVE_FACTOR 4
 
-static double filter_time = 0.0;
-static double join_prep_time = 0.0, self_join_prep_time = 0.0;
-static double join_materialization_time = 0.0, join_probing_time = 0.0, join_build_time = 0.0;
-static double self_join_materialization_time = 0.0, self_join_probing_time = 0.0;
-static double check_sum_time = 0.0;
-
 using namespace::std;
+
+double *join_prep_time = get_join_prep_time(),
+       *join_build_time = get_join_build_time(),
+       *join_probing_time = get_join_probing_time(),
+       *join_materialization_time = get_join_materialization_time(),
+       *self_join_prep_time = get_self_join_prep_time(),
+       *self_join_probing_time = get_self_join_probing_time(),
+       *self_join_materialization_time = get_self_join_materialization_time(),
+       *check_sum_time = get_checksum_time(),
+       *filter_time = get_filter_time();
 
 // Get materialized results
 std::vector<uint64_t *> Operator::getResults() {
@@ -155,7 +160,7 @@ void FilterScan::run() {
     }
 
     end_time = omp_get_wtime();
-    filter_time += (end_time - begin_time);
+    *filter_time += (end_time - begin_time);
 }
 
 // Require a column and add it to results
@@ -230,7 +235,7 @@ void Join::run() {
     uint64_t left_input_size = left_->result_size();
 
     end_time = omp_get_wtime();
-    join_prep_time += (end_time - begin_time);
+    *join_prep_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Build phase
@@ -242,7 +247,7 @@ void Join::run() {
     }
 
     end_time = omp_get_wtime();
-    join_build_time += (end_time - begin_time);
+    *join_build_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Probe phase
@@ -301,7 +306,7 @@ void Join::run() {
     }
 
     end_time = omp_get_wtime();
-    join_probing_time += (end_time - begin_time);
+    *join_probing_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Materialization phase
@@ -331,7 +336,7 @@ void Join::run() {
     }
 
     end_time = omp_get_wtime();
-    join_materialization_time += (end_time - begin_time);
+    *join_materialization_time += (end_time - begin_time);
 }
 
 // Copy to result
@@ -379,7 +384,7 @@ void SelfJoin::run() {
     auto right_col = input_data_[right_col_id];
 
     end_time = omp_get_wtime();
-    self_join_prep_time += (end_time - begin_time);
+    *self_join_prep_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Probing
@@ -423,7 +428,7 @@ void SelfJoin::run() {
     }
 
     end_time = omp_get_wtime();
-    self_join_probing_time += (end_time - begin_time);
+    *self_join_probing_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Materialization
@@ -449,7 +454,7 @@ void SelfJoin::run() {
     }
 
     end_time = omp_get_wtime();
-    self_join_materialization_time += (end_time - begin_time);
+    *self_join_materialization_time += (end_time - begin_time);
 }
 
 // Run
@@ -486,37 +491,5 @@ void Checksum::run() {
     }
 
     end_time = omp_get_wtime();
-    check_sum_time += (end_time - begin_time);
-}
-
-// Timer
-void reset_time() {
-    filter_time = 0.0;
-    self_join_prep_time = 0.0;
-    self_join_probing_time = 0.0;
-    self_join_materialization_time = 0.0;
-    join_prep_time = 0.0;
-    join_probing_time = 0.0;
-    join_build_time = 0.0;
-    join_materialization_time = 0.0;
-    check_sum_time = 0.0;
-}
-
-void display_time() {
-    double join_time = join_prep_time + join_probing_time + join_materialization_time + join_build_time;
-    double self_join_time = self_join_prep_time + self_join_probing_time + self_join_materialization_time;
-    double total_time = filter_time + self_join_time + join_time + check_sum_time;
-    cerr << endl;
-    cerr << "Total tracked time = " << total_time << " sec." << endl;
-    cerr << "    FilterScan time = " << filter_time << " sec." << endl;
-    cerr << "    SelfJoin time = " << self_join_time  << " sec." << endl;
-    cerr << "        Preparation time = " << self_join_prep_time << " sec." << endl;
-    cerr << "        Probing time = " << self_join_probing_time << " sec." << endl;
-    cerr << "        Materialization time = " << self_join_materialization_time << " sec." << endl;
-    cerr << "    Join time = " << join_time << " sec." << endl;
-    cerr << "        Preparation time = " << join_prep_time << " sec." << endl;
-    cerr << "        Building time = " << join_build_time << " sec." << endl;
-    cerr << "        Probing time = " << join_probing_time << " sec." << endl;
-    cerr << "        Materialization time = " << join_materialization_time << " sec." << endl;
-    cerr << "    Checksum time = " << check_sum_time << " sec." << endl;
+    *check_sum_time += (end_time - begin_time);
 }
