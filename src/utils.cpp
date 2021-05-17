@@ -8,6 +8,7 @@ static double join_materialization_time = 0.0, join_probing_time = 0.0, join_bui
 static double self_join_materialization_time = 0.0, self_join_probing_time = 0.0;
 static double check_sum_time = 0.0;
 static double total_time = 0.0;
+static double relation_reading_time = 0.0, relation_writing_time = 0.0;
 
 using namespace::std;
 
@@ -43,6 +44,14 @@ void Utils::storeRelation(std::ofstream &out, Relation &r, unsigned i) {
 
 
 // Timer
+double * get_relation_reading_time() {
+    return &relation_reading_time;
+}
+
+double * get_relation_writing_time() {
+    return &relation_writing_time;
+}
+
 double * get_filter_time() {
     return &filter_time;
 }
@@ -54,7 +63,6 @@ double * get_total_time() {
 double * get_self_join_prep_time() {
     return &self_join_prep_time;
 }
-
 
 double * get_self_join_probing_time() {
     return &self_join_probing_time;
@@ -106,7 +114,8 @@ void reset_time() {
 void display_time() {
     double join_time = join_prep_time + join_probing_time + join_materialization_time + join_build_time;
     double self_join_time = self_join_prep_time + self_join_probing_time + self_join_materialization_time;
-    double tracked_time = filter_time + self_join_time + join_time + check_sum_time;
+    double relation_time = relation_writing_time + relation_reading_time;
+    double tracked_time = filter_time + self_join_time + join_time + check_sum_time + relation_time;
     cerr << endl;
     cerr << "Total time = " << total_time << " sec." << endl;
     cerr << "Tracked time = " << tracked_time << " sec." << endl;
@@ -121,6 +130,9 @@ void display_time() {
     cerr << "        Probing time = " << join_probing_time << " sec." << endl;
     cerr << "        Materialization time = " << join_materialization_time << " sec." << endl;
     cerr << "    Checksum time = " << check_sum_time << " sec." << endl;
+    cerr << "    Relation time = " << relation_time << " sec." << endl;
+    cerr << "        Reading time = " << relation_reading_time << " sec." << endl;
+    cerr << "        Writing time = " << relation_writing_time << " sec." << endl;
     cerr << "Untracked time = " << total_time - tracked_time << " sec." << endl;
 }
 

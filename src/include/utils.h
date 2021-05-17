@@ -22,6 +22,8 @@ void reset_time();
 
 void display_time();
 
+double * get_relation_reading_time();
+double * get_relation_writing_time();
 double * get_total_time();
 double * get_filter_time();
 double * get_self_join_prep_time();

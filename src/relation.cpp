@@ -6,9 +6,16 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "omp.h"
+#include "utils.h"
+
+double *relation_writing_time = get_relation_writing_time();
+double *relation_reading_time = get_relation_reading_time();
 
 // Stores a relation into a binary file
 void Relation::storeRelation(const std::string &file_name) {
+
+    double start = omp_get_wtime();
+
     std::ofstream out_file;
     out_file.open(file_name, std::ios::out | std::ios::binary);
     out_file.write((char *) &size_, sizeof(size_));
@@ -18,10 +25,15 @@ void Relation::storeRelation(const std::string &file_name) {
         out_file.write((char *) c, size_ * sizeof(uint64_t));
     }
     out_file.close();
+
+    *relation_writing_time += (omp_get_wtime() - start);
 }
 
 // Stores a relation into a file (csv), e.g., for loading/testing it with a DBMS
 void Relation::storeRelationCSV(const std::string &file_name) {
+
+    double start = omp_get_wtime();
+
     std::ofstream out_file;
     out_file.open(file_name + ".tbl", std::ios::out);
     for (uint64_t i = 0; i < size_; ++i) {
@@ -30,6 +42,8 @@ void Relation::storeRelationCSV(const std::string &file_name) {
         }
         out_file << "\n";
     }
+
+    *relation_writing_time += (omp_get_wtime() - start);
 }
 
 // Dump SQL: Create and load table (PostgreSQL)
@@ -49,6 +63,9 @@ void Relation::dumpSQL(const std::string &file_name, unsigned relation_id) {
 }
 
 void Relation::loadRelation(const char *file_name) {
+
+    double start = omp_get_wtime();
+
     int fd = open(file_name, O_RDONLY);
     if (fd == -1) {
         std::cerr << "cannot open " << file_name << std::endl;
@@ -91,6 +108,8 @@ void Relation::loadRelation(const char *file_name) {
         char *current = addr + size_ * sizeof(uint64_t) * i;
         this->columns_[i] = (reinterpret_cast<uint64_t *>(current));
     }
+
+    *relation_reading_time += (omp_get_wtime() - start);
 }
 
 // Constructor that loads relation_ from disk
