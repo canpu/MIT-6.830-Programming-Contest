@@ -478,7 +478,7 @@ void Checksum::run() {
     #pragma omp parallel num_threads(num_threads)
     {
         for (size_t c = omp_get_thread_num(); c < num_cols; c += num_threads) {
-            SelectInfo sInfo = col_info_[c];
+            const SelectInfo &sInfo = col_info_[c];
             auto col_id = input_->resolve(sInfo);
             uint64_t *result_col = results[col_id];
             uint64_t sum = 0;
