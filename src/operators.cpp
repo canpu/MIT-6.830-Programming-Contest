@@ -175,6 +175,16 @@ bool Join::require(SelectInfo info) {
     return true;
 }
 
+// Swap
+void Join::swap() {
+    // Use smaller input_ for build
+    if (left_->result_size() > right_->result_size()) {
+        std::swap(left_, right_);
+        std::swap(p_info_.left, p_info_.right);
+        std::swap(requested_columns_left_, requested_columns_right_);
+    }
+}
+
 // Run
 void Join::run() {
 
@@ -185,13 +195,7 @@ void Join::run() {
 
     // Preparation phase
     double begin_time = omp_get_wtime(), end_time;
-
-    // Use smaller input_ for build
-    if (left_->result_size() > right_->result_size()) {
-        std::swap(left_, right_);
-        std::swap(p_info_.left, p_info_.right);
-        std::swap(requested_columns_left_, requested_columns_right_);
-    }
+    this->swap();
 
     auto left_input_data = left_->getResults();
     auto right_input_data = right_->getResults();
@@ -228,6 +232,7 @@ void Join::run() {
         right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
     }
     uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
+
     end_time = omp_get_wtime();
     *join_prep_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
@@ -407,7 +412,7 @@ void SelfJoin::run() {
     *self_join_probing_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
-    // Materialization
+    // Merge
     for (size_t c = 0; c < tot_num_cols; ++c) {
         tmp_results_[c].reserve(result_size_);
     }
@@ -417,11 +422,11 @@ void SelfJoin::run() {
         uint64_t tid = omp_get_thread_num();
 
         vector<size_t> &selected = thread_selected_ids[tid];
-        size_t t_size = thread_result_sizes[tid];
-        size_t cur_ind = thread_cum_sizes[tid];
+        size_t &t_size = thread_result_sizes[tid];
+        size_t &cur_ind = thread_cum_sizes[tid];
 
         for (uint64_t i = 0; i < t_size; ++i) {
-            size_t id = selected[i];
+            size_t &id = selected[i];
             for (unsigned cId = 0; cId < tot_num_cols; ++cId) {
                 tmp_results_[cId][cur_ind] = copy_data_[cId][id];
             }

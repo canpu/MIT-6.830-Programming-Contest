@@ -128,8 +128,6 @@ class Join : public Operator {
         std::vector<uint64_t *> copy_left_data_, copy_right_data_;
 
     private:
-        /// Copy tuple to result
-        void copy2Result(uint64_t left_id, uint64_t right_id);
         /// Create mapping for bindings
         void createMappingForBindings();
 
@@ -141,6 +139,8 @@ class Join : public Operator {
             : left_(std::move(left)), right_(std::move(right)), p_info_(p_info) {};
         /// Require a column and add it to results
         bool require(SelectInfo info) override;
+        /// Swap relations (use smaller one as inner)
+        void swap();
         /// Run
         void run() override;
 };
