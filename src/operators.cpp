@@ -3,6 +3,7 @@
 #include <set>
 #include <utility>
 #include "utils.h"
+#include "junction/ConcurrentMap_Leapfrog.h"
 
 #include <cassert>
 #include <iostream>
@@ -12,6 +13,8 @@
 #define RESERVE_FACTOR 3
 
 using namespace::std;
+
+typedef junction::ConcurrentMap_Leapfrog<uint64_t, uint64_t> HashMap;
 
 double *join_prep_time = get_join_prep_time(),
        *join_build_time = get_join_build_time(),
@@ -239,6 +242,7 @@ void Join::run() {
 
     // Build phase
     vector<HT> hash_maps(num_threads);
+    
     #pragma omp parallel num_threads(num_threads)
     {
         uint64_t tid = omp_get_thread_num();
