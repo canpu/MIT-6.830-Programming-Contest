@@ -2,7 +2,6 @@
 
 #include "joiner.h"
 #include "parser.h"
-#include "statistics.h"
 #include <vector>
 
 int main(int argc, char *argv[]) {
@@ -19,7 +18,6 @@ int main(int argc, char *argv[]) {
     // Build histograms, indexes,...
     // TOOD: iterate over all relations and columns in joiner, and build maps for them
     // TODO: iterate over all relations and columns in joiner, and build histograms for them
-    for (const Relation &relation : joiner.relations()) {
 
     // Build histograms
     auto relations = &joiner.relations();
@@ -38,7 +36,6 @@ int main(int argc, char *argv[]) {
 
     while (getline(std::cin, line)) {
       std::vector<size_t> filterSizes = relationCardinalities;
-      auto iteratorFilter = filterSizes.begin();
 
       if (line == "F") continue; // End of a batch
       i.parseQuery(line);
@@ -67,21 +64,19 @@ int main(int argc, char *argv[]) {
         filterSizes[selectInfo.rel_id] = size;
       }
 
-
       // Creates optimized predicate order vector
       std::vector<PredicateInfo> predicateOrder;
       std::vector<unsigned> estimatedCardinalities;
-
-      auto predicateIt = predicateOrder.begin();
-      auto cardinalitiesIt = estimatedCardinalities.begin();
-
+      
       for (PredicateInfo predicateInfo: i.predicates()) {
         unsigned leftId = predicateInfo.left.rel_id;
         unsigned rightId = predicateInfo.right.rel_id;
 
+        auto predicateIt = predicateOrder.begin();
+        auto cardinalitiesIt = estimatedCardinalities.begin();
+        
         unsigned estimatedCardinality = filterSizes[leftId] * filterSizes[rightId];
-        std::cout << estimatedCardinality;
-
+        
         for (unsigned i = 0; i < estimatedCardinalities.size(); i++) {
           if (estimatedCardinality < estimatedCardinalities[i]) {
             estimatedCardinalities.insert(cardinalitiesIt, i, estimatedCardinality);
@@ -89,8 +84,19 @@ int main(int argc, char *argv[]) {
             break;
           }
         }
+
+        estimatedCardinalities.push_back(estimatedCardinality);
+        predicateOrder.push_back(predicateInfo);
+        
+        /*
+        std::cout << leftId;
+        std::cout << ",";
+        std::cout << rightId;
+        std::cout << " ";
+        */
       }
 
+      //std::cout << "\n";
       std::cout << joiner.join(i, predicateOrder);
     }
 }

@@ -12,8 +12,8 @@ class Histogram {
 
     public:
         Histogram() = default;
-        Histogram(unsigned int interval_width);
-        Histogram(unsigned int interval_width, unsigned int estimated_histogram_max);
+        Histogram(uint64_t interval_width);
+        Histogram(uint64_t interval_width, uint64_t estimated_histogram_max);
         ~Histogram() {}
 
         inline std::size_t get_number_of_intervals() {

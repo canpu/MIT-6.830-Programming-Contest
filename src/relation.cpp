@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "omp.h"
+#include "stdint.h"
 
 #include "statistics.h"
 

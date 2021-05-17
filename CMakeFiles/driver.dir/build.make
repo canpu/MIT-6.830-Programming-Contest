@@ -73,15 +73,15 @@ CMakeFiles/driver.dir/src/main/main.cpp.o: CMakeFiles/driver.dir/flags.make
 CMakeFiles/driver.dir/src/main/main.cpp.o: src/main/main.cpp
 CMakeFiles/driver.dir/src/main/main.cpp.o: CMakeFiles/driver.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/driver.dir/src/main/main.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/driver.dir/src/main/main.cpp.o -MF CMakeFiles/driver.dir/src/main/main.cpp.o.d -o CMakeFiles/driver.dir/src/main/main.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/main/main.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/driver.dir/src/main/main.cpp.o -MF CMakeFiles/driver.dir/src/main/main.cpp.o.d -o CMakeFiles/driver.dir/src/main/main.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/main/main.cpp
 
 CMakeFiles/driver.dir/src/main/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/driver.dir/src/main/main.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/main/main.cpp > CMakeFiles/driver.dir/src/main/main.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/main/main.cpp > CMakeFiles/driver.dir/src/main/main.cpp.i
 
 CMakeFiles/driver.dir/src/main/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/driver.dir/src/main/main.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/main/main.cpp -o CMakeFiles/driver.dir/src/main/main.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/main/main.cpp -o CMakeFiles/driver.dir/src/main/main.cpp.s
 
 # Object files for target driver
 driver_OBJECTS = \

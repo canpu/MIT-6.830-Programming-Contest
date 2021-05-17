@@ -73,15 +73,15 @@ CMakeFiles/harness.dir/src/main/harness.cpp.o: CMakeFiles/harness.dir/flags.make
 CMakeFiles/harness.dir/src/main/harness.cpp.o: src/main/harness.cpp
 CMakeFiles/harness.dir/src/main/harness.cpp.o: CMakeFiles/harness.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/harness.dir/src/main/harness.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/harness.dir/src/main/harness.cpp.o -MF CMakeFiles/harness.dir/src/main/harness.cpp.o.d -o CMakeFiles/harness.dir/src/main/harness.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/main/harness.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/harness.dir/src/main/harness.cpp.o -MF CMakeFiles/harness.dir/src/main/harness.cpp.o.d -o CMakeFiles/harness.dir/src/main/harness.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/main/harness.cpp
 
 CMakeFiles/harness.dir/src/main/harness.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/harness.dir/src/main/harness.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/main/harness.cpp > CMakeFiles/harness.dir/src/main/harness.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/main/harness.cpp > CMakeFiles/harness.dir/src/main/harness.cpp.i
 
 CMakeFiles/harness.dir/src/main/harness.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/harness.dir/src/main/harness.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/main/harness.cpp -o CMakeFiles/harness.dir/src/main/harness.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/main/harness.cpp -o CMakeFiles/harness.dir/src/main/harness.cpp.s
 
 # Object files for target harness
 harness_OBJECTS = \

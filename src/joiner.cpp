@@ -131,7 +131,6 @@ std::string Joiner::join(QueryInfo &query) {
     return out.str();
 }
 
-// Executes a join query
 std::string Joiner::join(QueryInfo &query, std::vector<PredicateInfo> optimizedPredicates) {
     std::set<unsigned> used_relations;
 

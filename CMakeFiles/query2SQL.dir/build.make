@@ -73,15 +73,15 @@ CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o: CMakeFiles/query2SQL.dir/flag
 CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o: src/main/query2SQL.cpp
 CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o: CMakeFiles/query2SQL.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o -MF CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o.d -o CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/main/query2SQL.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o -MF CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o.d -o CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/main/query2SQL.cpp
 
 CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/main/query2SQL.cpp > CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/main/query2SQL.cpp > CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.i
 
 CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/main/query2SQL.cpp -o CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/main/query2SQL.cpp -o CMakeFiles/query2SQL.dir/src/main/query2SQL.cpp.s
 
 # Object files for target query2SQL
 query2SQL_OBJECTS = \

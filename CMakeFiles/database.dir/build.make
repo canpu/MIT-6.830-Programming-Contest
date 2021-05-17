@@ -73,85 +73,85 @@ CMakeFiles/database.dir/src/joiner.cpp.o: CMakeFiles/database.dir/flags.make
 CMakeFiles/database.dir/src/joiner.cpp.o: src/joiner.cpp
 CMakeFiles/database.dir/src/joiner.cpp.o: CMakeFiles/database.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/database.dir/src/joiner.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/joiner.cpp.o -MF CMakeFiles/database.dir/src/joiner.cpp.o.d -o CMakeFiles/database.dir/src/joiner.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/joiner.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/joiner.cpp.o -MF CMakeFiles/database.dir/src/joiner.cpp.o.d -o CMakeFiles/database.dir/src/joiner.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/joiner.cpp
 
 CMakeFiles/database.dir/src/joiner.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/database.dir/src/joiner.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/joiner.cpp > CMakeFiles/database.dir/src/joiner.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/joiner.cpp > CMakeFiles/database.dir/src/joiner.cpp.i
 
 CMakeFiles/database.dir/src/joiner.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/database.dir/src/joiner.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/joiner.cpp -o CMakeFiles/database.dir/src/joiner.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/joiner.cpp -o CMakeFiles/database.dir/src/joiner.cpp.s
 
 CMakeFiles/database.dir/src/operators.cpp.o: CMakeFiles/database.dir/flags.make
 CMakeFiles/database.dir/src/operators.cpp.o: src/operators.cpp
 CMakeFiles/database.dir/src/operators.cpp.o: CMakeFiles/database.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/database.dir/src/operators.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/operators.cpp.o -MF CMakeFiles/database.dir/src/operators.cpp.o.d -o CMakeFiles/database.dir/src/operators.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/operators.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/operators.cpp.o -MF CMakeFiles/database.dir/src/operators.cpp.o.d -o CMakeFiles/database.dir/src/operators.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/operators.cpp
 
 CMakeFiles/database.dir/src/operators.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/database.dir/src/operators.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/operators.cpp > CMakeFiles/database.dir/src/operators.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/operators.cpp > CMakeFiles/database.dir/src/operators.cpp.i
 
 CMakeFiles/database.dir/src/operators.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/database.dir/src/operators.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/operators.cpp -o CMakeFiles/database.dir/src/operators.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/operators.cpp -o CMakeFiles/database.dir/src/operators.cpp.s
 
 CMakeFiles/database.dir/src/parser.cpp.o: CMakeFiles/database.dir/flags.make
 CMakeFiles/database.dir/src/parser.cpp.o: src/parser.cpp
 CMakeFiles/database.dir/src/parser.cpp.o: CMakeFiles/database.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/database.dir/src/parser.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/parser.cpp.o -MF CMakeFiles/database.dir/src/parser.cpp.o.d -o CMakeFiles/database.dir/src/parser.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/parser.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/parser.cpp.o -MF CMakeFiles/database.dir/src/parser.cpp.o.d -o CMakeFiles/database.dir/src/parser.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/parser.cpp
 
 CMakeFiles/database.dir/src/parser.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/database.dir/src/parser.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/parser.cpp > CMakeFiles/database.dir/src/parser.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/parser.cpp > CMakeFiles/database.dir/src/parser.cpp.i
 
 CMakeFiles/database.dir/src/parser.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/database.dir/src/parser.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/parser.cpp -o CMakeFiles/database.dir/src/parser.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/parser.cpp -o CMakeFiles/database.dir/src/parser.cpp.s
 
 CMakeFiles/database.dir/src/relation.cpp.o: CMakeFiles/database.dir/flags.make
 CMakeFiles/database.dir/src/relation.cpp.o: src/relation.cpp
 CMakeFiles/database.dir/src/relation.cpp.o: CMakeFiles/database.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/database.dir/src/relation.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/relation.cpp.o -MF CMakeFiles/database.dir/src/relation.cpp.o.d -o CMakeFiles/database.dir/src/relation.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/relation.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/relation.cpp.o -MF CMakeFiles/database.dir/src/relation.cpp.o.d -o CMakeFiles/database.dir/src/relation.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/relation.cpp
 
 CMakeFiles/database.dir/src/relation.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/database.dir/src/relation.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/relation.cpp > CMakeFiles/database.dir/src/relation.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/relation.cpp > CMakeFiles/database.dir/src/relation.cpp.i
 
 CMakeFiles/database.dir/src/relation.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/database.dir/src/relation.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/relation.cpp -o CMakeFiles/database.dir/src/relation.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/relation.cpp -o CMakeFiles/database.dir/src/relation.cpp.s
 
 CMakeFiles/database.dir/src/statistics.cpp.o: CMakeFiles/database.dir/flags.make
 CMakeFiles/database.dir/src/statistics.cpp.o: src/statistics.cpp
 CMakeFiles/database.dir/src/statistics.cpp.o: CMakeFiles/database.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/database.dir/src/statistics.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/statistics.cpp.o -MF CMakeFiles/database.dir/src/statistics.cpp.o.d -o CMakeFiles/database.dir/src/statistics.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/statistics.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/statistics.cpp.o -MF CMakeFiles/database.dir/src/statistics.cpp.o.d -o CMakeFiles/database.dir/src/statistics.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/statistics.cpp
 
 CMakeFiles/database.dir/src/statistics.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/database.dir/src/statistics.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/statistics.cpp > CMakeFiles/database.dir/src/statistics.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/statistics.cpp > CMakeFiles/database.dir/src/statistics.cpp.i
 
 CMakeFiles/database.dir/src/statistics.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/database.dir/src/statistics.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/statistics.cpp -o CMakeFiles/database.dir/src/statistics.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/statistics.cpp -o CMakeFiles/database.dir/src/statistics.cpp.s
 
 CMakeFiles/database.dir/src/utils.cpp.o: CMakeFiles/database.dir/flags.make
 CMakeFiles/database.dir/src/utils.cpp.o: src/utils.cpp
 CMakeFiles/database.dir/src/utils.cpp.o: CMakeFiles/database.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/ellenwang/Desktop/programming-contest-2021/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/database.dir/src/utils.cpp.o"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/utils.cpp.o -MF CMakeFiles/database.dir/src/utils.cpp.o.d -o CMakeFiles/database.dir/src/utils.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/utils.cpp
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/database.dir/src/utils.cpp.o -MF CMakeFiles/database.dir/src/utils.cpp.o.d -o CMakeFiles/database.dir/src/utils.cpp.o -c /Users/ellenwang/Desktop/programming-contest-2021/src/utils.cpp
 
 CMakeFiles/database.dir/src/utils.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/database.dir/src/utils.cpp.i"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/utils.cpp > CMakeFiles/database.dir/src/utils.cpp.i
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/ellenwang/Desktop/programming-contest-2021/src/utils.cpp > CMakeFiles/database.dir/src/utils.cpp.i
 
 CMakeFiles/database.dir/src/utils.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/database.dir/src/utils.cpp.s"
-	/usr/local/bin/g++-11 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/utils.cpp -o CMakeFiles/database.dir/src/utils.cpp.s
+	/usr/local/Cellar/llvm/12.0.0_1/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/ellenwang/Desktop/programming-contest-2021/src/utils.cpp -o CMakeFiles/database.dir/src/utils.cpp.s
 
 # Object files for target database
 database_OBJECTS = \
