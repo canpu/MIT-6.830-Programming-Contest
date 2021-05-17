@@ -496,8 +496,9 @@ void reset_time() {
 void display_time() {
     double join_time = join_prep_time + join_probing_time + join_materialization_time + join_build_time;
     double self_join_time = self_join_prep_time + self_join_probing_time + self_join_materialization_time;
+    double total_time = filter_time + self_join_time + join_time + check_sum_time;
     cerr << endl;
-    cerr << "Total tracked time = " << filter_time + self_join_time + join_time << " sec." << endl;
+    cerr << "Total tracked time = " << total_time << " sec." << endl;
     cerr << "    FilterScan time = " << filter_time << " sec." << endl;
     cerr << "    SelfJoin time = " << self_join_time  << " sec." << endl;
     cerr << "        Preparation time = " << self_join_prep_time << " sec." << endl;
