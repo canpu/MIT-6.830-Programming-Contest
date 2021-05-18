@@ -9,7 +9,7 @@
 
 #define NUM_THREADS 48
 #define DEPTH_WORTHY_PARALLELIZATION 1
-#define RESERVE_FACTOR 3
+#define RESERVE_FACTOR 2
 
 using namespace::std;
 
@@ -303,13 +303,11 @@ void Join::run() {
         thread_right_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
         uint64_t start_ind = thread_id * right_size_per_thread;
         uint64_t end_ind = (thread_id + 1) * right_size_per_thread;
-        if (end_ind > right_input_size)
-            end_ind = right_input_size;
+        if (end_ind > right_input_size) end_ind = right_input_size;
 
         for (uint64_t right_id = start_ind; right_id < end_ind; ++right_id) {
             auto right_key_val = right_key_column[right_id];
-            HT &hashmap = hash_maps[right_key_val % num_threads];
-            auto range = hashmap.equal_range(right_key_val/num_threads);
+            auto range = hash_maps[right_key_val % num_threads].equal_range(right_key_val / num_threads);
             for (auto iter = range.first; iter != range.second; ++iter) {
                 uint64_t left_id = iter->second;
                 thread_left_selected[thread_id].push_back(left_id);
