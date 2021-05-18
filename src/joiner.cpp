@@ -67,9 +67,7 @@ std::unique_ptr<Operator> Joiner::addScan(std::set<unsigned> &used_relations,
                                                   info.binding);
 }
 
-bool Joiner::sizeComparator() {
-
-}
+/*
 
 // Executes a join query
 std::string Joiner::join(QueryInfo &query, std::vector<unsigned int> sizes) {
@@ -159,6 +157,8 @@ std::string Joiner::join(QueryInfo &query, std::vector<unsigned int> sizes) {
     out << "\n";
     return out.str();
 }
+
+*/
 
 std::string Joiner::join(QueryInfo &query, std::vector<PredicateInfo> optimizedPredicates) {
     std::set<unsigned> used_relations;
