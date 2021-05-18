@@ -498,13 +498,12 @@ void SelfJoin::run() {
                 col_ptrs[cId][cur_ind] = copy_data_[cId][id];
             cur_ind++;
         }
+        delete [] thread_selected_ids[tid];
     }
 
     end_time = omp_get_wtime();
     *self_join_materialization_time += (end_time - begin_time);
 
-    for (size_t tid = 0; tid < NUM_THREADS; ++tid)
-        delete [] thread_selected_ids[tid];
     delete [] col_ptrs;
 }
 
