@@ -299,8 +299,8 @@ void Join::run() {
     #pragma omp parallel num_threads(num_threads)
     {
         uint64_t thread_id = omp_get_thread_num();
-        thread_left_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
-        thread_right_selected[thread_id].reserve(right_input_size * RESERVE_FACTOR);
+        thread_left_selected[thread_id].reserve(right_size_per_thread * RESERVE_FACTOR);
+        thread_right_selected[thread_id].reserve(right_size_per_thread * RESERVE_FACTOR);
         uint64_t start_ind = thread_id * right_size_per_thread;
         uint64_t end_ind = (thread_id + 1) * right_size_per_thread;
         if (end_ind > right_input_size) end_ind = right_input_size;
