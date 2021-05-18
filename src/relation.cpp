@@ -46,7 +46,7 @@ const std::vector<Histogram> Relation::createHistogram() const {
       if (random > max) max = random;
     }
 
-    Histogram histogram = Histogram((max-min)/10, max);
+    Histogram histogram = Histogram((max-min)/100, max);
 
     for(int tupleIndex = 0; tupleIndex < size_; tupleIndex++) {
       histogram.add_entry(columns_[i][tupleIndex]);

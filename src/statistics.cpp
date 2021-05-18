@@ -1,6 +1,7 @@
 #include "statistics.h"
 #include "omp.h"
 #include <limits.h>
+#include <stdlib.h> 
 
 using namespace std;
 
@@ -40,7 +41,7 @@ std::size_t Histogram::get_similarity(Histogram other) {
     unsigned numColumns = std::min(other.interval_count.size(), this->interval_count.size());
     std::size_t difference = 0;
     for (unsigned i = 0; i < numColumns; i++) {
-        difference += std::abs(float(this->interval_count[i]/sizeMe - other.interval_count[i]/sizeOther));
+        difference += abs(float(this->interval_count[i]/sizeMe - other.interval_count[i]/sizeOther));
     }
 
     return difference;
