@@ -102,7 +102,62 @@ void FilterScan::run() {
     size_t num_cols = input_data_.size();
     size_t num_filters = filters_.size();
 
-    uint64_t **col_ptrs = new uint64_t* [num_cols];
+    // Single Thread
+    if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+
+        uint64_t **comp_cols = new uint64_t* [num_filters];
+        uint64_t *comp_consts = new uint64_t [num_filters];
+        FilterInfo::Comparison *comps = new FilterInfo::Comparison [num_filters];
+
+        for (size_t j = 0; j < num_filters; ++j) {
+            FilterInfo &f = filters_[j];
+            comps[j] = f.comparison;
+            comp_cols[j] = relation_.columns()[f.filter_column.col_id];
+            comp_consts[j] = f.constant;
+        }
+
+        for (size_t cId = 0; cId < num_cols; ++cId) {
+            tmp_results_[cId].reserve(input_data_size);
+        }
+
+        result_size_ = 0;
+        bool pass;
+        for (uint64_t i = 0; i < input_data_size; ++i) {
+            pass = true;
+            for (size_t j = 0; j < num_filters; ++j) {
+                switch (comps[j]) {
+                    case FilterInfo::Comparison::Equal:
+                        pass = comp_cols[j][i] == comp_consts[j];
+                        break;
+                    case FilterInfo::Comparison::Greater:
+                        pass = comp_cols[j][i] > comp_consts[j];
+                        break;
+                    case FilterInfo::Comparison::Less:
+                        pass = comp_cols[j][i] < comp_consts[j];
+                        break;
+                }
+                if (!pass) break;
+            }
+            if (pass) {
+                for (unsigned cId = 0; cId < num_cols; ++cId) {
+                    tmp_results_[cId][result_size_] = input_data_[cId][i];
+                }
+                ++result_size_;
+            }
+        }
+
+        delete [] comp_cols;
+        delete [] comp_consts;
+        delete [] comps;
+        return;
+    }
+
+    // Multi Threading
+    uint64_t size_per_thread;
+    size_per_thread = (input_data_size / NUM_THREADS) + (input_data_size % NUM_THREADS != 0);
+    size_t *thread_selected_ids[NUM_THREADS];
+    size_t thread_result_sizes [NUM_THREADS];
+
     uint64_t **comp_cols = new uint64_t* [num_filters];
     uint64_t *comp_consts = new uint64_t [num_filters];
     FilterInfo::Comparison *comps = new FilterInfo::Comparison [num_filters];
@@ -113,11 +168,6 @@ void FilterScan::run() {
         comp_cols[j] = relation_.columns()[f.filter_column.col_id];
         comp_consts[j] = f.constant;
     }
-
-    uint64_t size_per_thread;
-    size_per_thread = (input_data_size / NUM_THREADS) + (input_data_size % NUM_THREADS != 0);
-    size_t *thread_selected_ids[NUM_THREADS];
-    size_t thread_result_sizes [NUM_THREADS];
 
     #pragma omp parallel num_threads(NUM_THREADS)
     {
@@ -167,6 +217,7 @@ void FilterScan::run() {
         result_size_ += thread_result_sizes[t];
     }
 
+    uint64_t **col_ptrs = new uint64_t* [num_cols];
     // Materialization
     for (size_t cId = 0; cId < num_cols; ++cId) {
         vector<uint64_t> &col = tmp_results_[cId];
