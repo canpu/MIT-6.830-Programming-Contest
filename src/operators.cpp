@@ -100,27 +100,29 @@ void FilterScan::run() {
 
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
+    size_t num_filters = filters_.size();
 
-    
+    uint64_t **col_ptrs = new uint64_t* [num_cols];
+    uint64_t **comp_cols = new uint64_t* [num_filters];
+    uint64_t *comp_consts = new uint64_t [num_filters];
+    FilterInfo::Comparison *comps = new FilterInfo::Comparison [num_filters];
 
-
+    for (size_t j = 0; j < num_filters; ++j) {
+        FilterInfo &f = filters_[j];
+        comps[j] = f.comparison;
+        comp_cols[j] = relation_.columns()[f.filter_column.col_id];
+        comp_consts[j] = f.constant;
+    }
 
     uint64_t size_per_thread;
-    uint64_t num_threads;
-    if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        num_threads = 1;
-        size_per_thread = input_data_size;
-    } else
-        num_threads = NUM_THREADS;
-    size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
-    vector<vector<size_t>> thread_selected_ids(num_threads);
-    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
+    size_per_thread = (input_data_size / NUM_THREADS) + (input_data_size % NUM_THREADS != 0);
+    size_t *thread_selected_ids[NUM_THREADS];
+    size_t thread_result_sizes [NUM_THREADS];
 
-    #pragma omp parallel num_threads(num_threads)
+    #pragma omp parallel num_threads(NUM_THREADS)
     {
         uint64_t tid = omp_get_thread_num();
-        thread_selected_ids[tid] = vector<size_t> ();
-        thread_selected_ids[tid].reserve(size_per_thread);
+        thread_selected_ids[tid] = new uint64_t [input_data_size];
 
         uint64_t start_ind = tid * size_per_thread;
         uint64_t end_ind = start_ind + size_per_thread;
@@ -131,8 +133,18 @@ void FilterScan::run() {
 
         for (uint64_t i = start_ind; i < end_ind; ++i) {
             pass = true;
-            for (auto &f : filters_) {
-            pass &= applyFilter(i, f);
+            for (size_t j = 0; j < num_filters; ++j) {
+                switch (comps[j]) {
+                    case FilterInfo::Comparison::Equal:
+                        pass = comp_cols[j][i] == comp_consts[j];
+                        break;
+                    case FilterInfo::Comparison::Greater:
+                        pass = comp_cols[j][i] > comp_consts[j];
+                        break;
+                    case FilterInfo::Comparison::Less:
+                        pass = comp_cols[j][i] < comp_consts[j];
+                        break;
+                }
                 if (!pass) break;
             }
             if (pass) {
@@ -143,31 +155,37 @@ void FilterScan::run() {
         thread_result_sizes[tid] = size;
     }
 
+    delete [] comp_cols;
+    delete [] comp_consts;
+    delete [] comps;
+
     // Reduction
-    vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
+    size_t thread_cum_sizes [NUM_THREADS + 1] = {0};
     result_size_ = 0;
-    for (uint64_t t = 0; t < num_threads; ++t) {
+    for (uint64_t t = 0; t < NUM_THREADS; ++t) {
         thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
         result_size_ += thread_result_sizes[t];
     }
 
     // Materialization
-    for (size_t c = 0; c < num_cols; ++c) {
-        tmp_results_[c].reserve(result_size_);
+    for (size_t cId = 0; cId < num_cols; ++cId) {
+        vector<uint64_t> &col = tmp_results_[cId];
+        col.reserve(result_size_);
+        col_ptrs[cId] = col.data();
     }
 
-    #pragma omp parallel num_threads(num_threads)
+    #pragma omp parallel num_threads(NUM_THREADS)
     {
         uint64_t tid = omp_get_thread_num();
 
-        vector<size_t> &selected = thread_selected_ids[tid];
+        size_t *selected = thread_selected_ids[tid];
         size_t t_size = thread_result_sizes[tid];
         size_t cur_ind = thread_cum_sizes[tid];
 
         for (uint64_t i = 0; i < t_size; ++i) {
             size_t id = selected[i];
             for (unsigned cId = 0; cId < num_cols; ++cId) {
-                tmp_results_[cId][cur_ind] = input_data_[cId][id];
+                col_ptrs[cId][cur_ind] = input_data_[cId][id];
             }
             cur_ind++;
         }
@@ -175,6 +193,10 @@ void FilterScan::run() {
 
     end_time = omp_get_wtime();
     *filter_time += (end_time - begin_time);
+
+    delete [] col_ptrs;
+    for (size_t i = 0; i < NUM_THREADS; ++i)
+        delete [] thread_selected_ids[i];
 }
 
 // Require a column and add it to results
