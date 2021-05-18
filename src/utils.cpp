@@ -119,7 +119,6 @@ void display_time() {
     double relation_time = relation_writing_time + relation_reading_time;
     double tracked_time = filter_time + self_join_time + join_time + check_sum_time + relation_time;
     cerr << endl;
-    cerr << "Total time = " << total_time << " sec." << endl;
     cerr << "Tracked time = " << tracked_time << " sec." << endl;
     cerr << "    FilterScan time = " << filter_time << " sec." << endl;
     cerr << "    SelfJoin time = " << self_join_time  << " sec." << endl;
@@ -135,6 +134,5 @@ void display_time() {
     cerr << "    Relation time = " << relation_time << " sec." << endl;
     cerr << "        Reading time = " << relation_reading_time << " sec." << endl;
     cerr << "        Writing time = " << relation_writing_time << " sec." << endl;
-    cerr << "Untracked time = " << total_time - tracked_time << " sec." << endl;
 }
 
