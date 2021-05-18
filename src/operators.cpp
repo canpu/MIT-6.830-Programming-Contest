@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define NUM_THREADS 48
-#define DEPTH_WORTHY_PARALLELIZATION 1
+#define DEPTH_WORTHY_PARALLELIZATION 4
 #define RESERVE_FACTOR 2
 
 using namespace::std;
@@ -100,9 +100,6 @@ void FilterScan::run() {
 
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
-
-    
-
 
 
     uint64_t size_per_thread;
