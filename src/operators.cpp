@@ -134,6 +134,8 @@ void FilterScan::run() {
         
         end_time = omp_get_wtime();
         *filter_time += (end_time - begin_time);
+        
+        delete [] col_ptrs;
         return;
     }
 
@@ -209,6 +211,8 @@ void FilterScan::run() {
         }
     }
 
+    delete [] col_ptrs;
+
     end_time = omp_get_wtime();
     *filter_time += (end_time - begin_time);
 }
@@ -280,15 +284,8 @@ void Join::run() {
     auto right_key_column = right_input_data[right_col_id];
     uint64_t right_input_size = right_->result_size();
 
-    uint64_t right_size_per_thread;
-    uint64_t num_threads;
-    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        num_threads = 1;
-        right_size_per_thread = right_input_size;
-    } else {
-        num_threads = NUM_THREADS;
-        right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
-    }
+    uint64_t num_threads = NUM_THREADS;
+    uint64_t right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
     uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
 
     end_time = omp_get_wtime();
@@ -314,7 +311,6 @@ void Join::run() {
     begin_time = omp_get_wtime();
 
     // Probe phase
-    vector<vector<size_t>> thread_selected_ids(num_threads);
     vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
 
     vector<vector<uint64_t>> thread_left_selected(num_threads);
@@ -357,8 +353,11 @@ void Join::run() {
     begin_time = omp_get_wtime();
 
     // Materialization phase
-    for (size_t c = 0; c < tot_num_cols; ++c) {
-        tmp_results_[c].reserve(result_size_);
+    uint64_t **col_ptrs = new uint64_t* [tot_num_cols];
+    for (size_t cId = 0; cId < tot_num_cols; ++cId) {
+        vector<uint64_t> &col = tmp_results_[cId];
+        col.reserve(result_size_);
+        col_ptrs[cId] = col.data();
     }
 
     #pragma omp parallel num_threads(num_threads)
@@ -373,10 +372,10 @@ void Join::run() {
             size_t left_id = left_ids[i];
             size_t right_id = right_ids[i];
             for (unsigned cId = 0; cId < left_num_cols; ++cId) {
-                tmp_results_[cId][cur_ind] = copy_left_data_[cId][left_id];
+                col_ptrs[cId][cur_ind] = copy_left_data_[cId][left_id];
             }
             for (unsigned cId = 0; cId < right_num_cols; ++cId) {
-                tmp_results_[left_num_cols+cId][cur_ind] = copy_right_data_[cId][right_id];
+                col_ptrs[left_num_cols+cId][cur_ind] = copy_right_data_[cId][right_id];
             }
             cur_ind++;
         }
@@ -384,6 +383,8 @@ void Join::run() {
 
     end_time = omp_get_wtime();
     *join_materialization_time += (end_time - begin_time);
+
+    delete [] col_ptrs;
 }
 
 // Require a column and add it to results
