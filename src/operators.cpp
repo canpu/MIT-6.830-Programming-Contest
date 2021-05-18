@@ -356,8 +356,11 @@ void Join::run() {
     begin_time = omp_get_wtime();
 
     // Materialization phase
-    for (size_t c = 0; c < tot_num_cols; ++c) {
-        tmp_results_[c].reserve(result_size_);
+    uint64_t **col_ptrs = new uint64_t* [tot_num_cols];
+    for (size_t cId = 0; cId < tot_num_cols; ++cId) {
+        vector<uint64_t> &col = tmp_results_[cId];
+        col.reserve(result_size_);
+        col_ptrs[cId] = col.data();
     }
 
     #pragma omp parallel num_threads(num_threads)
@@ -372,10 +375,10 @@ void Join::run() {
             size_t left_id = left_ids[i];
             size_t right_id = right_ids[i];
             for (unsigned cId = 0; cId < left_num_cols; ++cId) {
-                tmp_results_[cId][cur_ind] = copy_left_data_[cId][left_id];
+                col_ptrs[cId][cur_ind] = copy_left_data_[cId][left_id];
             }
             for (unsigned cId = 0; cId < right_num_cols; ++cId) {
-                tmp_results_[left_num_cols+cId][cur_ind] = copy_right_data_[cId][right_id];
+                col_ptrs[left_num_cols+cId][cur_ind] = copy_right_data_[cId][right_id];
             }
             cur_ind++;
         }
