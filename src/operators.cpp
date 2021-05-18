@@ -25,10 +25,23 @@ double *join_prep_time = get_join_prep_time(),
 
 // Get materialized results
 std::vector<uint64_t *> Operator::getResults() {
-    size_t data_size = tmp_results_.size();
-    std::vector<uint64_t *> result_vector(data_size);
-    for (size_t i = 0; i < data_size; ++i) {
-        result_vector[i] = tmp_results_[i].data();
+    size_t num_cols = tmp_results_.size();
+    std::vector<uint64_t *> result_vector(num_cols);
+    if (num_cols < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION)
+        for (size_t i = 0; i < num_cols; ++i) {
+            result_vector[i] = tmp_results_[i].data();
+        }
+    else {
+        size_t num_cols_per_thread = (num_cols / NUM_THREADS) + (num_cols % NUM_THREADS);
+        #pragma omp parallel num_threads(NUM_THREADS)
+        {
+            size_t tid = omp_get_thread_num();
+            size_t start_ind = num_cols_per_thread * tid;
+            size_t end_ind = start_ind + num_cols_per_thread;
+            if (end_ind > num_cols) end_ind = num_cols;
+            for (size_t i = start_ind; i < end_ind; ++i)
+                result_vector[i] = tmp_results_[i].data();
+        }
     }
     return result_vector;
 }
