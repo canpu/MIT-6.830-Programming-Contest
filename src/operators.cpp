@@ -459,7 +459,6 @@ void Checksum::run() {
             uint64_t *result_col = results[col_id];
             uint64_t sum = 0;
             uint64_t *last = result_col + input_->result_size();
-
             for (uint64_t *iter = result_col; iter != last; ++iter)
                 sum += *iter;
             check_sums_[old_num_cols + c] = (sum);

@@ -41,6 +41,8 @@ class Histogram {
 
         void add_entry(uint64_t v);
 
+        std::size_t get_similarity(Histogram other);
+
         std::size_t get_total_number_of_records();
 
         std::size_t get_number_of_records_geq(uint64_t threshold);

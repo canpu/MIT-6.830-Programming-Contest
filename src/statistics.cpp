@@ -33,6 +33,19 @@ size_t Histogram::get_total_number_of_records() {
     return count;
 }
 
+std::size_t Histogram::get_similarity(Histogram other) {
+    std::size_t sizeOther = other.get_total_number_of_records();
+    std::size_t sizeMe = this->get_total_number_of_records();
+
+    unsigned numColumns = std::min(other.interval_count.size(), this->interval_count.size());
+    std::size_t difference = 0;
+    for (unsigned i = 0; i < numColumns; i++) {
+        difference += std::abs(float(this->interval_count[i]/sizeMe - other.interval_count[i]/sizeOther));
+    }
+
+    return difference;
+}
+
 size_t Histogram::get_number_of_records_geq(uint64_t threshold) {
     if (threshold > get_histogram_max())
         return 0;

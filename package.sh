@@ -5,4 +5,6 @@ tar --dereference --exclude='build' \
 	--exclude='cmake-build-debug' \
 	--exclude='cmake-build-release' \
 	--exclude='submission.tar.gz' \
+	--exclude='googletest-build' \
+	--exclude='googletest-src' \
     --exclude='workloads' -czf submission.tar.gz *

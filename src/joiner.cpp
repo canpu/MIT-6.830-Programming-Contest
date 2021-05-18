@@ -67,13 +67,44 @@ std::unique_ptr<Operator> Joiner::addScan(std::set<unsigned> &used_relations,
                                                   info.binding);
 }
 
+/*
+
 // Executes a join query
-std::string Joiner::join(QueryInfo &query) {
+std::string Joiner::join(QueryInfo &query, std::vector<unsigned int> sizes) {
     std::set<unsigned> used_relations;
 
     // We always start with the first join predicate and append the other joins
     // to it (--> left-deep join trees). You might want to choose a smarter
     // join ordering ...
+
+    std::vector<PredicateInfo> predicateOrder;
+    std::vector<unsigned> estimatedCardinalities;
+    
+    for (unsigned i = 0; i < query.predicates().size(); i++) {
+        bool added = false;
+
+        PredicateInfo predicateInfo = query.predicates()[i];
+        
+        auto leftId = predicateInfo.left.rel_id;
+        auto rightId = predicateInfo.right.rel_id;
+
+        unsigned estimatedCardinality = std::max(sizes[leftId], sizes[rightId]);
+
+        for (unsigned j = 0; j < estimatedCardinalities.size(); j++) {
+          if (estimatedCardinality < estimatedCardinalities[i]) {
+            estimatedCardinalities.insert(estimatedCardinalities.begin() + j, estimatedCardinality);
+            predicateOrder.insert(predicateOrder.begin() + j, predicateInfo);
+            added = true;
+            break;
+          }
+        }
+        
+        if (!added) {
+            estimatedCardinalities.push_back(estimatedCardinality);
+            predicateOrder.push_back(predicateInfo);
+        } 
+    }
+
     const auto &firstJoin = query.predicates()[0];
     std::unique_ptr<Operator> left, right;
     left = addScan(used_relations, firstJoin.left, query);
@@ -126,6 +157,7 @@ std::string Joiner::join(QueryInfo &query) {
     out << "\n";
     return out.str();
 }
+*/
 
 std::string Joiner::join(QueryInfo &query, std::vector<PredicateInfo> optimizedPredicates) {
     std::set<unsigned> used_relations;
@@ -185,4 +217,3 @@ std::string Joiner::join(QueryInfo &query, std::vector<PredicateInfo> optimizedP
     out << "\n";
     return out.str();
 }
-

@@ -80,29 +80,51 @@ int main(int argc, char *argv[]) {
       for (PredicateInfo predicateInfo: i.predicates()) {
         unsigned leftId = predicateInfo.left.rel_id;
         unsigned rightId = predicateInfo.right.rel_id;
+        unsigned leftCol = predicateInfo.left.col_id;
+        unsigned rightCol = predicateInfo.right.col_id;
+        bool added = false;
 
-        auto predicateIt = predicateOrder.begin();
-        auto cardinalitiesIt = estimatedCardinalities.begin();
-        
-        unsigned estimatedCardinality = std::max(filterSizes[leftId], filterSizes[rightId]);
+        //unsigned estimatedCardinality = std::max(filterSizes[leftId], filterSizes[rightId]);
+        unsigned estimatedJoinCard = relationHistograms[leftId][leftCol].get_similarity(relationHistograms[rightId][rightCol]);
         
         for (unsigned i = 0; i < estimatedCardinalities.size(); i++) {
-          if (estimatedCardinality < estimatedCardinalities[i]) {
-            estimatedCardinalities.insert(cardinalitiesIt, i, estimatedCardinality);
-            predicateOrder.insert(predicateIt, i, predicateInfo);
+          if (estimatedJoinCard < estimatedCardinalities[i]) {
+            estimatedCardinalities.insert(estimatedCardinalities.begin() + i, estimatedJoinCard);
+            predicateOrder.insert(predicateOrder.begin() + i, predicateInfo);
+            added = true;
             break;
           }
         }
 
-        estimatedCardinalities.push_back(estimatedCardinality);
-        predicateOrder.push_back(predicateInfo);
+        if (!added) {
+          estimatedCardinalities.push_back(estimatedJoinCard);
+          predicateOrder.push_back(predicateInfo);
+        }
       }
 
       // Pass predicate order into join
       std::cout << joiner.join(i, predicateOrder);
     }
+    /*
+
+    std::vector<unsigned> cardinalities;
+
+    
+    for (unsigned i = 0; i < relations->size(); i++) {
+      cardinalities.push_back(relations->at(i).size());
+    }
+    
+    QueryInfo i;
+    while (getline(std::cin, line)) {
+      if (line == "F") continue; // End of a batch
+      i.parseQuery(line);
+      std::cout << joiner.join(i, cardinalities);
+    }
+    */
+
     *total_time = (omp_get_wtime() - start);
     display_time();
 
     return 0;
+    
 }
