@@ -97,7 +97,6 @@ class FilterScan : public Scan {
                         std::vector<
                             FilterInfo>{
                             filter_info}) {};
-
         /// Require a column and add it to results
         bool require(SelectInfo info) override;
         /// Run

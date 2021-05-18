@@ -127,5 +127,3 @@ std::string Joiner::join(QueryInfo &query) {
     return out.str();
 }
 
-void display_time();
-
