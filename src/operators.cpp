@@ -139,15 +139,8 @@ void FilterScan::run() {
         return;
     }
 
-
-
     uint64_t size_per_thread;
-    uint64_t num_threads;
-    if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        num_threads = 1;
-        size_per_thread = input_data_size;
-    } else
-        num_threads = NUM_THREADS;
+    uint64_t num_threads = NUM_THREADS;
     size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
     vector<vector<size_t>> thread_selected_ids(num_threads);
     vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
@@ -188,8 +181,11 @@ void FilterScan::run() {
     }
 
     // Materialization
-    for (size_t c = 0; c < num_cols; ++c) {
-        tmp_results_[c].reserve(result_size_);
+    uint64_t **col_ptrs = new uint64_t* [num_cols];
+    for (size_t cId = 0; cId < num_cols; ++cId) {
+        vector<uint64_t> &col = tmp_results_[cId];
+        col.reserve(result_size_);
+        col_ptrs[cId] = col.data();
     }
 
     #pragma omp parallel num_threads(num_threads)
@@ -203,7 +199,7 @@ void FilterScan::run() {
         for (uint64_t i = 0; i < t_size; ++i) {
             size_t id = selected[i];
             for (unsigned cId = 0; cId < num_cols; ++cId) {
-                tmp_results_[cId][cur_ind] = input_data_[cId][id];
+                col_ptrs[cId][cur_ind] = input_data_[cId][id];
             }
             cur_ind++;
         }
@@ -211,6 +207,9 @@ void FilterScan::run() {
 
     end_time = omp_get_wtime();
     *filter_time += (end_time - begin_time);
+
+    delete [] col_ptrs;
+    return;
 }
 
 // Require a column and add it to results
