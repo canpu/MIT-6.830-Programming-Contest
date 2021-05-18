@@ -8,4 +8,3 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j 48
 cd $DIR
-bash compile.sh

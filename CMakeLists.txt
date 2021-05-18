@@ -5,6 +5,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# TBB
+# Add FindTBB.cmake path file to the module path
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}")
+# Set RPATHS in executables
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+find_package(TBB)
+set(TBB_SEARCH_COMPOMPONENTS tbb_preview tbbmalloc_proxy tbbmalloc tbb)
+
+
 # OpenMP
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -43,6 +52,7 @@ OPTION(FORCE_TESTS "Build tests, regardless of build type." ON)
 if (CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]" OR FORCE_TESTS)
     add_subdirectory(test)
 endif()
+target_link_libraries(database tbb)
 
 add_executable(driver src/main/main.cpp)
 target_link_libraries(driver database)

@@ -3,6 +3,7 @@
 #include <set>
 #include <utility>
 #include "utils.h"
+#include <tbb/concurrent_unordered_map.h>
 
 #include <cassert>
 #include <iostream>
@@ -187,6 +188,9 @@ void Join::swap() {
 
 // Run
 void Join::run() {
+
+    tbb::concurrent_unordered_map<uint64_t, uint64_t> map;
+    map.emplace(make_pair(1, 2));
 
     left_->require(p_info_.left);
     right_->require(p_info_.right);
