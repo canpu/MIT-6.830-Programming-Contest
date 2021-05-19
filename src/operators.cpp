@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define NUM_THREADS 48
-#define DEPTH_WORTHY_PARALLELIZATION 4
+#define DEPTH_WORTHY_PARALLELIZATION 6
 #define RESERVE_FACTOR 2
 
 using namespace::std;
