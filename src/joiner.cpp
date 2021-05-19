@@ -82,34 +82,44 @@ std::string Joiner::join(QueryInfo &query) {
         root = std::make_unique<Join>(move(left), move(right), firstJoin);
 
     auto predicates_copy = query.predicates();
+    bool self_join_found = false;
     for (unsigned i = 1; i < predicates_copy.size(); ++i) {
         auto &p_info = predicates_copy[i];
         auto &left_info = p_info.left;
         auto &right_info = p_info.right;
 
-        switch (analyzeInputOfJoin(used_relations, left_info, right_info)) {
-            case QueryGraphProvides::Left:left = move(root);
-                right = addScan(used_relations, right_info, query);
-                root = std::make_unique<Join>(move(left), move(right), p_info);
-                break;
-            case QueryGraphProvides::Right:
-                left = addScan(used_relations, left_info, query);
-                right = move(root);
-                root = std::make_unique<Join>(move(left), move(right), p_info);
-                break;
-            case QueryGraphProvides::Both:
-                // All relations of this join are already used somewhere else in the
-                // query. Thus, we have either a cycle in our join graph or more than
-                // one join predicate per join.
-                root = std::make_unique<SelfJoin>(move(root), p_info);
-                break;
-            case QueryGraphProvides::None:
-                // Process this predicate later when we can connect it to the other
-                // joins. We never have cross products.
-                predicates_copy.push_back(p_info);
-                break;
+        if (analyzeInputOfJoin(used_relations, left_info, right_info) == QueryGraphProvides::Both) {
+            // All relations of this join are already used somewhere else in the
+            // query. Thus, we have either a cycle in our join graph or more than
+            // one join predicate per join.
+            root = std::make_unique<SelfJoin>(move(root), p_info);
+            self_join_found = false;
+            break;
         };
     }
+    if (!self_join_found)
+        for (unsigned i = 1; i < predicates_copy.size(); ++i) {
+            auto &p_info = predicates_copy[i];
+            auto &left_info = p_info.left;
+            auto &right_info = p_info.right;
+
+            switch (analyzeInputOfJoin(used_relations, left_info, right_info)) {
+                case QueryGraphProvides::Left:left = move(root);
+                    right = addScan(used_relations, right_info, query);
+                    root = std::make_unique<Join>(move(left), move(right), p_info);
+                    break;
+                case QueryGraphProvides::Right:
+                    left = addScan(used_relations, left_info, query);
+                    right = move(root);
+                    root = std::make_unique<Join>(move(left), move(right), p_info);
+                    break;
+                case QueryGraphProvides::None:
+                    // Process this predicate later when we can connect it to the other
+                    // joins. We never have cross products.
+                    predicates_copy.push_back(p_info);
+                    break;
+            };
+        }
 
     Checksum checksum(move(root), query.selections());
     checksum.run();
