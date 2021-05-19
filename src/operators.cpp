@@ -286,6 +286,97 @@ void Join::run() {
     if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
         run_single();
         return;
+    } else if (left_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+
+
+        auto left_key_column = left_input_data[left_col_id];
+        size_t left_num_cols = copy_left_data_.size();
+        size_t right_num_cols = copy_right_data_.size();
+        size_t tot_num_cols = left_num_cols + right_num_cols;
+        auto right_key_column = right_input_data[right_col_id];
+        size_t num_threads = NUM_THREADS;
+        vector<size_t> thread_sizes(num_threads);
+        vector<size_t> cum_size(num_threads + 1, 0);
+
+        #pragma omp parallel num_threads(num_threads)
+        {
+            size_t tid = omp_get_thread_num();
+
+            // Build phase
+            HT map;
+            map.reserve(left_input_size * RESERVE_FACTOR);
+            for (size_t i = 0; i < left_input_size; ++i)
+                map.emplace(left_key_column[i], i);
+
+            #pragma omp single
+            {
+                end_time = omp_get_wtime();
+                *join_build_time += (end_time - begin_time);
+                begin_time = omp_get_wtime();
+            }
+
+            #pragma omp barrier
+
+            // Probe phase
+            size_t right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads);
+            size_t start_ind = right_size_per_thread * tid;
+            size_t end_ind = start_ind + right_size_per_thread;
+            if (end_ind > right_input_size) end_ind = right_input_size;
+            
+
+            vector<size_t> left_selected, right_selected;
+            left_selected.reserve(right_size_per_thread * RESERVE_FACTOR);
+            right_selected.reserve(right_size_per_thread * RESERVE_FACTOR);
+
+            for (size_t right_id = start_ind; right_id < end_ind; ++right_id) {
+                uint64_t right_key_val = right_key_column[right_id];
+                auto range = map.equal_range(right_key_val);
+                for (auto iter = range.first; iter != range.second; ++iter) {
+                    uint64_t left_id = iter->second;
+                    left_selected.push_back(left_id);
+                    right_selected.push_back(right_id);
+                }
+            }
+            size_t size = left_selected.size();
+            thread_sizes[tid] = size;
+
+            #pragma omp barrier
+            #pragma omp single
+            {
+                result_size_ = 0;
+
+                for (size_t t = 0; t < num_threads; ++t) {
+                    result_size_ += thread_sizes[t];
+                    cum_size[t+1] = cum_size[t] + thread_sizes[t];
+                }
+
+                end_time = omp_get_wtime();
+                *join_probing_time += (end_time - begin_time);
+                begin_time = omp_get_wtime();
+
+                for (size_t c = 0; c < tot_num_cols; ++c)
+                    tmp_results_[c].reserve(result_size_);
+            }
+
+            #pragma omp barrier
+            // Materialization
+            size_t ind = cum_size[tid];
+            for (size_t i = 0; i < size; ++i) {
+                size_t left_id = left_selected[i];
+                size_t right_id = right_selected[i];
+                for (size_t c = 0; c < left_num_cols; ++c)
+                    tmp_results_[c][ind] = copy_left_data_[c][left_id];
+                for (size_t c = 0; c < right_num_cols; ++c)
+                    tmp_results_[left_num_cols+c][ind] = copy_right_data_[c][right_id];
+                ++ind;
+            }
+        }
+
+        end_time = omp_get_wtime();
+        *join_materialization_time += (end_time - begin_time);
+
+        return;
+
     }
 
     auto left_key_column = left_input_data[left_col_id];
