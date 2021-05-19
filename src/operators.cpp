@@ -24,6 +24,16 @@ double *join_prep_time = get_join_prep_time(),
        *check_sum_time = get_checksum_time(),
        *filter_time = get_filter_time();
 
+size_t decide_num_threads(size_t data_size) {
+    if (data_size >= NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION)
+        return NUM_THREADS;
+    else if (data_size >= NUM_THREADS)
+        return 12;
+    else
+        return 1;
+}
+
+
 // Get materialized results
 std::vector<uint64_t *> Operator::getResults() {
     size_t num_cols = tmp_results_.size();
@@ -102,15 +112,8 @@ void FilterScan::run() {
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
 
-
-    uint64_t size_per_thread;
-    uint64_t num_threads;
-    if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        num_threads = 1;
-        size_per_thread = input_data_size;
-    } else
-        num_threads = NUM_THREADS;
-    size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
+    uint64_t num_threads = decide_num_threads(input_data_size);
+    uint64_t size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
     vector<vector<size_t>> thread_selected_ids(num_threads);
     vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
 
@@ -265,26 +268,23 @@ void Join::run() {
     double begin_time = omp_get_wtime(), end_time;
     this->swap();
 
-    auto left_input_data = left_->getResults();
-    auto right_input_data = right_->getResults();
-
-    // Resolve the input_ columns_
-    unsigned res_col_id = 0;
-    for (auto &info : requested_columns_left_) {
-        copy_left_data_.push_back(left_input_data[left_->resolve(info)]);
-        select_to_result_col_id_[info] = res_col_id++;
-    }
-    for (auto &info : requested_columns_right_) {
-        copy_right_data_.push_back(right_input_data[right_->resolve(info)]);
-        select_to_result_col_id_[info] = res_col_id++;
-    }
-
-    auto left_col_id = left_->resolve(p_info_.left);
-    auto right_col_id = right_->resolve(p_info_.right);
-    uint64_t left_input_size = left_->result_size();
-    uint64_t right_input_size = right_->result_size();
-
-    if (left_input_size < CHUNCK_SIZE) {
+    if (left_->result_size() < CHUNCK_SIZE) {
+        auto left_input_data = left_->getResults();
+        auto right_input_data = right_->getResults();
+        // Resolve the input_ columns_
+        unsigned res_col_id = 0;
+        for (auto &info : requested_columns_left_) {
+            copy_left_data_.push_back(left_input_data[left_->resolve(info)]);
+            select_to_result_col_id_[info] = res_col_id++;
+        }
+        for (auto &info : requested_columns_right_) {
+            copy_right_data_.push_back(right_input_data[right_->resolve(info)]);
+            select_to_result_col_id_[info] = res_col_id++;
+        }
+        auto left_col_id = left_->resolve(p_info_.left);
+        auto right_col_id = right_->resolve(p_info_.right);
+        uint64_t left_input_size = left_->result_size();
+        uint64_t right_input_size = right_->result_size();
 
 
         auto left_key_column = left_input_data[left_col_id];
@@ -377,23 +377,20 @@ void Join::run() {
 
     }
 
-    auto left_key_column = left_input_data[left_col_id];
-    size_t left_num_cols = copy_left_data_.size();
-    size_t right_num_cols = copy_right_data_.size();
-    size_t tot_num_cols = left_num_cols + right_num_cols;
-    auto right_key_column = right_input_data[right_col_id];
-
-    uint64_t right_size_per_thread;
-    uint64_t num_threads;
-    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        num_threads = 1;
-        right_size_per_thread = right_input_size;
-    } else {
-        num_threads = NUM_THREADS;
-        right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
+    auto left_input_data = left_->getResults();
+    auto right_input_data = right_->getResults();
+    // Resolve the input_ columns_
+    unsigned res_col_id = 0;
+    for (auto &info : requested_columns_left_) {
+        copy_left_data_.push_back(left_input_data[left_->resolve(info)]);
+        select_to_result_col_id_[info] = res_col_id++;
     }
-    uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
+    for (auto &info : requested_columns_right_) {
+        copy_right_data_.push_back(right_input_data[right_->resolve(info)]);
+        select_to_result_col_id_[info] = res_col_id++;
+    }
 
+    uint64_t num_threads = decide_num_threads(left_->result_size());
 
     vector<size_t> thread_sizes(num_threads);
     vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
@@ -408,6 +405,18 @@ void Join::run() {
     vector<vector<vector<uint64_t>>> quot(num_threads);
     #pragma omp parallel num_threads(num_threads)
     {
+        auto left_col_id = left_->resolve(p_info_.left);
+        auto right_col_id = right_->resolve(p_info_.right);
+        uint64_t left_input_size = left_->result_size();
+        uint64_t right_input_size = right_->result_size();
+        auto left_key_column = left_input_data[left_col_id];
+        size_t left_num_cols = copy_left_data_.size();
+        size_t right_num_cols = copy_right_data_.size();
+        size_t tot_num_cols = left_num_cols + right_num_cols;
+        auto right_key_column = right_input_data[right_col_id];
+        uint64_t right_size_per_thread = (right_->result_size() / num_threads) + (right_->result_size() % num_threads != 0);
+        uint64_t left_size_per_thread = (left_->result_size() / num_threads) + (left_->result_size() % num_threads != 0);
+
         size_t tid = omp_get_thread_num();
         size_t start = left_size_per_thread * tid;
         size_t end = start + left_size_per_thread;
@@ -599,12 +608,14 @@ void SelfJoin::run() {
 
     // Multi-thread
     // Probing
-    size_t size_per_thread = (input_data_size / NUM_THREADS) + (input_data_size % NUM_THREADS != 0);
-    size_t thread_result_sizes[NUM_THREADS];
-    size_t thread_cum_sizes [NUM_THREADS + 1] = {0};
+    size_t num_threads = decide_num_threads(input_data_size);
 
-    #pragma omp parallel num_threads(NUM_THREADS)
+    vector<size_t> thread_result_sizes(num_threads);
+    vector<size_t> thread_cum_sizes(num_threads + 1, 0);
+
+    #pragma omp parallel num_threads(num_threads)
     {
+        size_t size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
         size_t tid = omp_get_thread_num();
         size_t *selected = new size_t[size_per_thread];
         size_t thread_size = 0;
@@ -626,7 +637,7 @@ void SelfJoin::run() {
         {
             // Reduction
             result_size_ = 0;
-            for (size_t t = 0; t < NUM_THREADS; ++t) {
+            for (size_t t = 0; t < num_threads; ++t) {
                 thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
                 result_size_ += thread_result_sizes[t];
             }
@@ -681,7 +692,7 @@ void Checksum::run() {
     auto num_cols = col_info_.size();
     check_sums_.resize(old_num_cols + num_cols);
 
-    uint64_t num_threads = result_size_ < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION ? 1 : NUM_THREADS;
+    uint64_t num_threads = decide_num_threads(result_size_);
 
     #pragma omp parallel num_threads(num_threads)
     {
