@@ -480,7 +480,8 @@ void Join::run() {
                 }
             }
         }
-        thread_sizes[tid] = right_selected.size();
+        size_t size = right_selected.size();
+        thread_sizes[tid] = size;
 
         #pragma omp barrier
         #pragma omp single
@@ -501,11 +502,9 @@ void Join::run() {
         }
 
         #pragma omp barrier
-        size_t thread_id = omp_get_thread_num();
-        size_t t_size = thread_sizes[thread_id];
-        size_t cur_ind = thread_cum_sizes[thread_id];
+        size_t cur_ind = thread_cum_sizes[tid];
 
-        for (size_t i = 0; i < t_size; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             size_t left_id = left_selected[i];
             size_t right_id = right_selected[i];
             for (size_t cId = 0; cId < left_num_cols; ++cId) {
@@ -601,17 +600,16 @@ void SelfJoin::run() {
     // Multi-thread
     // Probing
     size_t size_per_thread = (input_data_size / NUM_THREADS) + (input_data_size % NUM_THREADS != 0);
-    size_t *thread_selected_ids[NUM_THREADS];
     size_t thread_result_sizes[NUM_THREADS];
+    size_t thread_cum_sizes [NUM_THREADS + 1] = {0};
 
     #pragma omp parallel num_threads(NUM_THREADS)
     {
-        size_t thread_id = omp_get_thread_num();
-        thread_selected_ids[thread_id] = new size_t[size_per_thread];
-        size_t *selected = thread_selected_ids[thread_id];
+        size_t tid = omp_get_thread_num();
+        size_t *selected = new size_t[size_per_thread];
         size_t thread_size = 0;
 
-        size_t start_ind = thread_id * size_per_thread;
+        size_t start_ind = tid * size_per_thread;
         size_t end_ind = start_ind + size_per_thread;
         if (end_ind > input_data_size) end_ind = input_data_size;
 
@@ -621,53 +619,50 @@ void SelfJoin::run() {
                 ++thread_size;
             }
         }
-        thread_result_sizes[thread_id] = thread_size;
-    }
+        thread_result_sizes[tid] = thread_size;
 
-    // Reduction
-    size_t thread_cum_sizes [NUM_THREADS + 1] = {0};
-    result_size_ = 0;
-    for (size_t t = 0; t < NUM_THREADS; ++t) {
-        thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
-        result_size_ += thread_result_sizes[t];
-    }
+        #pragma omp barrier
+        #pragma omp single
+        {
+            // Reduction
+            result_size_ = 0;
+            for (size_t t = 0; t < NUM_THREADS; ++t) {
+                thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_result_sizes[t];
+                result_size_ += thread_result_sizes[t];
+            }
 
-    end_time = omp_get_wtime();
-    *self_join_probing_time += (end_time - begin_time);
-    begin_time = omp_get_wtime();
+            end_time = omp_get_wtime();
+            *self_join_probing_time += (end_time - begin_time);
+            begin_time = omp_get_wtime();
 
-    // Merge
-    for (size_t c = 0; c < tot_num_cols; ++c) {
-        tmp_results_[c].reserve(result_size_);
-    }
-
-    uint64_t **col_ptrs = new uint64_t* [tot_num_cols];
-    for (size_t cId = 0; cId < tot_num_cols; ++cId) {
-        vector<uint64_t> &col = tmp_results_[cId];
-        col.reserve(result_size_);
-        col_ptrs[cId] = col.data();
-    }
-
-    #pragma omp parallel num_threads(NUM_THREADS)
-    {
-        size_t tid = omp_get_thread_num();
-        size_t *selected = thread_selected_ids[tid];
-        size_t t_size = thread_result_sizes[tid];
+            // Merge
+            for (size_t c = 0; c < tot_num_cols; ++c) {
+                tmp_results_[c].reserve(result_size_);
+            }
+        }
+        #pragma omp barrier
         size_t cur_ind = thread_cum_sizes[tid];
 
-        for (size_t i = 0; i < t_size; ++i) {
+        uint64_t **col_ptrs = new uint64_t* [tot_num_cols];
+        for (size_t cId = 0; cId < tot_num_cols; ++cId) {
+            vector<uint64_t> &col = tmp_results_[cId];
+            col.reserve(result_size_);
+            col_ptrs[cId] = col.data();
+        }
+        for (size_t i = 0; i < thread_size; ++i) {
             size_t id = selected[i];
             for (size_t cId = 0; cId < tot_num_cols; ++cId)
                 col_ptrs[cId][cur_ind] = copy_data_[cId][id];
             cur_ind++;
         }
-        delete [] thread_selected_ids[tid];
+        delete [] selected;
+        delete [] col_ptrs;
+
     }
 
     end_time = omp_get_wtime();
     *self_join_materialization_time += (end_time - begin_time);
 
-    delete [] col_ptrs;
 }
 
 // Run
