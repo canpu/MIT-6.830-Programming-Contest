@@ -281,25 +281,23 @@ void Join::run() {
             copy_right_data_.push_back(right_input_data[right_->resolve(info)]);
             select_to_result_col_id_[info] = res_col_id++;
         }
-        auto left_col_id = left_->resolve(p_info_.left);
-        auto right_col_id = right_->resolve(p_info_.right);
-        uint64_t left_input_size = left_->result_size();
-        uint64_t right_input_size = right_->result_size();
+        size_t n = NUM_THREADS;
+        vector<size_t> thread_sizes(n);
+        vector<size_t> cum_size(n + 1, 0);
 
-
-        auto left_key_column = left_input_data[left_col_id];
-        size_t left_num_cols = copy_left_data_.size();
-        size_t right_num_cols = copy_right_data_.size();
-        size_t tot_num_cols = left_num_cols + right_num_cols;
-        auto right_key_column = right_input_data[right_col_id];
-        size_t num_threads = NUM_THREADS;
-        vector<size_t> thread_sizes(num_threads);
-        vector<size_t> cum_size(num_threads + 1, 0);
-
-        #pragma omp parallel num_threads(num_threads)
+        #pragma omp parallel num_threads(n)
         {
+            auto left_col_id = left_->resolve(p_info_.left);
+            auto right_col_id = right_->resolve(p_info_.right);
+            uint64_t left_input_size = left_->result_size();
+            uint64_t right_input_size = right_->result_size();
+            auto left_key_column = left_input_data[left_col_id];
+            size_t left_num_cols = copy_left_data_.size();
+            size_t right_num_cols = copy_right_data_.size();
+            size_t tot_num_cols = left_num_cols + right_num_cols;
+            auto right_key_column = right_input_data[right_col_id];
             size_t tid = omp_get_thread_num();
-
+            size_t num_threads = n;
             // Build phase
             HT map;
             map.reserve(left_input_size * RESERVE_FACTOR);
