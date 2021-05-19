@@ -131,5 +131,8 @@ void display_time() {
     cerr << "        Probing time = " << join_probing_time << " sec." << endl;
     cerr << "        Merge time = " << join_materialization_time << " sec." << endl;
     cerr << "    Checksum time = " << check_sum_time << " sec." << endl;
+    cerr << "    Relation time = " << relation_time << " sec." << endl;
+    cerr << "        Reading time = " << relation_reading_time << " sec." << endl;
+    cerr << "        Writing time = " << relation_writing_time << " sec." << endl;
 }
 

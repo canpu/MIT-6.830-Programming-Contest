@@ -383,8 +383,15 @@ void Join::run() {
     size_t tot_num_cols = left_num_cols + right_num_cols;
     auto right_key_column = right_input_data[right_col_id];
 
-    uint64_t num_threads = NUM_THREADS;
-    uint64_t right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
+    uint64_t right_size_per_thread;
+    uint64_t num_threads;
+    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+        num_threads = 1;
+        right_size_per_thread = right_input_size;
+    } else {
+        num_threads = NUM_THREADS;
+        right_size_per_thread = (right_input_size / num_threads) + (right_input_size % num_threads != 0);
+    }
     uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
 
 
