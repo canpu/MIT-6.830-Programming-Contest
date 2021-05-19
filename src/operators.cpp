@@ -311,25 +311,36 @@ void Join::run() {
 
     // Build phase
     vector<HT> hash_maps(num_threads);
-    vector<size_t> rem(left_input_size);
-    vector<uint64_t> quot(left_input_size);
+    vector<vector<vector<size_t>>> indices(num_threads); // first index for partition, second index for rem
+    vector<vector<vector<uint64_t>>> quot(num_threads);
     #pragma omp parallel num_threads(num_threads)
     {
         size_t tid = omp_get_thread_num();
         size_t start = left_size_per_thread * tid;
         size_t end = start + left_size_per_thread;
         if (end > left_input_size) end = left_input_size;
+        vector<vector<uint64_t>> &tind = indices[tid];
+        vector<vector<uint64_t>> &tquot = quot[tid];
+        tind.resize(num_threads);
+        tquot.resize(num_threads);
+        for (size_t i = 0; i < num_threads; ++i) {
+            tind[i].reserve(left_size_per_thread / num_threads * RESERVE_FACTOR);
+            tquot[i].reserve(left_size_per_thread / num_threads * RESERVE_FACTOR);
+        }
+
         for (size_t i = start; i < end; ++i) {
-            rem[i] = left_key_column[i] % num_threads;
-            quot[i] = left_key_column[i] / num_threads;
+            size_t bucket = left_key_column[i] % num_threads;
+            tind[bucket].push_back(i);
+            tquot[bucket].push_back(left_key_column[i] / num_threads);
         }
 
         #pragma omp barrier
         hash_maps[tid].reserve(left_size_per_thread * RESERVE_FACTOR);
 
-        for (size_t i = 0; i < left_input_size; ++i) {
-            if (rem[i] == tid) {
-                hash_maps[tid].emplace(quot[i], i);
+        for (size_t p = 0; p < num_threads; ++p) {
+            size_t size = indices[p][tid].size();
+            for (size_t j = 0; j < size; ++j) {
+                hash_maps[tid].emplace(quot[p][tid][j], indices[p][tid][j]);
             }
         }
     }
