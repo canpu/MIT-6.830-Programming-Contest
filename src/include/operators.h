@@ -11,6 +11,7 @@
 
 #include "relation.h"
 #include "parser.h"
+#include "hopscotch_map.h"
 
 namespace std {
     /// Simple hash function to enable use with unordered_map
@@ -114,13 +115,14 @@ class Join : public Operator {
         /// The join predicate info
         PredicateInfo p_info_;
 
-        using HT = std::unordered_multimap<uint64_t, uint64_t>;
+        using HT = std::unordered_multimap<uint64_t, size_t>;
 
         /// Columns that have to be materialized
         std::unordered_set<SelectInfo> requested_columns_;
         /// Left/right columns that have been requested
         std::vector<SelectInfo> requested_columns_left_, requested_columns_right_;
 
+        void copy2Result(uint64_t left_id, uint64_t right_id);
         /// The entire input data of left and right
         std::vector<uint64_t *> left_input_data_, right_input_data_;
         /// The input data that has to be copied
@@ -142,7 +144,7 @@ class Join : public Operator {
         void swap();
         /// Run
         void run() override;
-        void run_small();
+        void run_single();
 };
 
 class SelfJoin : public Operator {

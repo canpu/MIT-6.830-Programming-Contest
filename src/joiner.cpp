@@ -93,9 +93,7 @@ std::string Joiner::join(QueryInfo &query) {
                 root = std::make_unique<Join>(move(left), move(right), p_info);
                 break;
             case QueryGraphProvides::Right:
-                left = addScan(used_relations,
-                                left_info,
-                                query);
+                left = addScan(used_relations, left_info, query);
                 right = move(root);
                 root = std::make_unique<Join>(move(left), move(right), p_info);
                 break;
