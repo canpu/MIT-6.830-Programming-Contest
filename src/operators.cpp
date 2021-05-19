@@ -10,6 +10,7 @@
 #define NUM_THREADS 48
 #define DEPTH_WORTHY_PARALLELIZATION 6
 #define RESERVE_FACTOR 2
+#define CHUNCK_SIZE 600
 
 using namespace::std;
 
@@ -283,10 +284,7 @@ void Join::run() {
     uint64_t left_input_size = left_->result_size();
     uint64_t right_input_size = right_->result_size();
 
-    if (right_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
-        run_single();
-        return;
-    } else if (left_input_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
+    if (left_input_size < CHUNCK_SIZE) {
 
 
         auto left_key_column = left_input_data[left_col_id];
@@ -396,12 +394,16 @@ void Join::run() {
     }
     uint64_t left_size_per_thread = (left_input_size / num_threads) + (left_input_size % num_threads != 0);
 
+
+    vector<size_t> thread_sizes(num_threads);
+    vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
+    result_size_ = 0;
+
     end_time = omp_get_wtime();
     *join_prep_time += (end_time - begin_time);
     begin_time = omp_get_wtime();
 
     // Build phase
-    vector<HT> hash_maps(num_threads);
     vector<vector<vector<size_t>>> indices(num_threads); // first index for partition, second index for rem
     vector<vector<vector<uint64_t>>> quot(num_threads);
     #pragma omp parallel num_threads(num_threads)
@@ -426,77 +428,86 @@ void Join::run() {
         }
 
         #pragma omp barrier
-        hash_maps[tid].reserve(left_size_per_thread * RESERVE_FACTOR);
+        HT hash_map;
+        hash_map.reserve(left_size_per_thread * RESERVE_FACTOR);
 
         for (size_t p = 0; p < num_threads; ++p) {
             size_t size = indices[p][tid].size();
             for (size_t j = 0; j < size; ++j) {
-                hash_maps[tid].emplace(quot[p][tid][j], indices[p][tid][j]);
+                hash_map.emplace(quot[p][tid][j], indices[p][tid][j]);
             }
         }
-    }
 
-    end_time = omp_get_wtime();
-    *join_build_time += (end_time - begin_time);
-    begin_time = omp_get_wtime();
+        #pragma omp single
+        {
+            end_time = omp_get_wtime();
+            *join_build_time += (end_time - begin_time);
+            begin_time = omp_get_wtime();
+        }
 
-    // Probe phase
-    vector<vector<size_t>> thread_selected_ids(num_threads);
-    vector<size_t> thread_result_sizes = vector<size_t> (num_threads, 0);
-
-    vector<vector<size_t>> thread_left_selected(num_threads);
-    vector<vector<size_t>> thread_right_selected(num_threads);
-    vector<size_t> thread_sizes(num_threads);
-
-    #pragma omp parallel num_threads(num_threads)
-    {
-        size_t thread_id = omp_get_thread_num();
-        thread_left_selected[thread_id].reserve(right_size_per_thread * RESERVE_FACTOR);
-        thread_right_selected[thread_id].reserve(right_size_per_thread * RESERVE_FACTOR);
-        size_t start_ind = thread_id * right_size_per_thread;
+        // Probe phase
+        // Partition
+        for (size_t i = 0; i < num_threads; ++i) {
+            tind[i].resize(0);
+            tquot[i].resize(0);
+            tind[i].reserve(left_size_per_thread * RESERVE_FACTOR / num_threads);
+            tquot[i].reserve(left_size_per_thread * RESERVE_FACTOR / num_threads);
+        }
+        size_t start_ind = tid * right_size_per_thread;
         size_t end_ind = start_ind + right_size_per_thread;
         if (end_ind > right_input_size) end_ind = right_input_size;
+        for (size_t i = start_ind; i < end_ind; ++i) {
+            size_t bucket = right_key_column[i] % num_threads;
+            tind[bucket].push_back(i);
+            tquot[bucket].push_back(right_key_column[i] / num_threads);
+        }
+    
+        // Probe
+        #pragma omp barrier
 
-        for (size_t right_id = start_ind; right_id < end_ind; ++right_id) {
-            auto right_key_val = right_key_column[right_id];
-            auto range = hash_maps[right_key_val % num_threads].equal_range(right_key_val / num_threads);
-            for (auto iter = range.first; iter != range.second; ++iter) {
-                uint64_t left_id = iter->second;
-                thread_left_selected[thread_id].push_back(left_id);
-                thread_right_selected[thread_id].push_back(right_id);
+        vector<size_t> left_selected, right_selected;
+        left_selected.reserve(right_size_per_thread * RESERVE_FACTOR);
+        right_selected.reserve(right_size_per_thread * RESERVE_FACTOR);
+        
+        for (size_t p = 0; p < num_threads; ++p) {
+            size_t size = indices[p][tid].size();
+            for (size_t j = 0; j < size; ++j) {
+                auto range = hash_map.equal_range(quot[p][tid][j]);
+                for (auto iter = range.first; iter != range.second; ++iter) {
+                    uint64_t left_id = iter->second;
+                    left_selected.push_back(left_id);
+                    right_selected.push_back(indices[p][tid][j]);
+                }
             }
         }
-        thread_sizes[thread_id] = thread_right_selected[thread_id].size();
-    }
+        thread_sizes[tid] = right_selected.size();
 
-    // Reduction
-    vector<size_t> thread_cum_sizes = vector<size_t> (num_threads + 1, 0);
-    result_size_ = 0;
-    for (size_t t = 0; t < num_threads; ++t) {
-        result_size_ += thread_sizes[t];
-        thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_sizes[t];
-    }
+        #pragma omp barrier
+        #pragma omp single
+        {
+            // Reduction
+            for (size_t t = 0; t < num_threads; ++t) {
+                result_size_ += thread_sizes[t];
+                thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_sizes[t];
+            }
+            end_time = omp_get_wtime();
+            *join_probing_time += (end_time - begin_time);
+            begin_time = omp_get_wtime();
 
-    end_time = omp_get_wtime();
-    *join_probing_time += (end_time - begin_time);
-    begin_time = omp_get_wtime();
+            // Materialization phase
+            for (size_t c = 0; c < tot_num_cols; ++c) {
+                tmp_results_[c].reserve(result_size_);
+            }
+        }
 
-    // Materialization phase
-    for (size_t c = 0; c < tot_num_cols; ++c) {
-        tmp_results_[c].reserve(result_size_);
-    }
-
-    #pragma omp parallel num_threads(num_threads)
-    {
+        #pragma omp barrier
         size_t thread_id = omp_get_thread_num();
-        vector<size_t> &left_ids = thread_left_selected[thread_id];
-        vector<size_t> &right_ids = thread_right_selected[thread_id];
         size_t t_size = thread_sizes[thread_id];
         size_t cur_ind = thread_cum_sizes[thread_id];
 
         for (size_t i = 0; i < t_size; ++i) {
-            size_t left_id = left_ids[i];
-            size_t right_id = right_ids[i];
+            size_t left_id = left_selected[i];
+            size_t right_id = right_selected[i];
             for (size_t cId = 0; cId < left_num_cols; ++cId) {
                 tmp_results_[cId][cur_ind] = copy_left_data_[cId][left_id];
             }
