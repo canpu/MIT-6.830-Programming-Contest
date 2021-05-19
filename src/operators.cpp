@@ -220,43 +220,6 @@ void Join::copy2Result(uint64_t left_id, uint64_t right_id) {
 }
 
 // Run
-void Join::run_single() {
-  
-    auto left_input_data = left_->getResults();
-    auto right_input_data = right_->getResults();
-    auto left_col_id = left_->resolve(p_info_.left);
-    auto right_col_id = right_->resolve(p_info_.right);
-    size_t left_input_size = left_->result_size();
-    size_t right_input_size = right_->result_size();
-
-    // Build phase
-    auto left_key_column = left_input_data[left_col_id];
-    tsl::hopscotch_map<uint64_t, vector<size_t>> map(left_input_size * RESERVE_FACTOR);
-    for (uint64_t i = 0; i < left_input_size; ++i) {
-        tsl::hopscotch_map<uint64_t, vector<size_t>>::iterator it = map.find(left_key_column[i]);
-        if (it == map.end()) {
-            map[left_key_column[i]] = vector<size_t> (1, i);
-        }
-        else
-            it.value().push_back(i);
-    }
-
-    // Probe phase
-    for (size_t c = 0; c < tmp_results_.size(); ++c)
-        tmp_results_[c].reserve(right_input_size * RESERVE_FACTOR);
-
-    auto right_key_column = right_input_data[right_col_id];
-    for (uint64_t i = 0; i < right_input_size; ++i) {
-        auto rightKey = right_key_column[i];
-        tsl::hopscotch_map<uint64_t, vector<size_t>>::iterator it = map.find(rightKey);
-        if (it != map.end())
-            for (size_t left_id : it.value()) {
-                copy2Result(left_id, i);
-            }
-    }
-}
-
-// Run
 void Join::run() {
 
     left_->require(p_info_.left);
@@ -607,13 +570,14 @@ void SelfJoin::run() {
 
     // Multi-thread
     // Probing
-    size_t num_threads = decide_num_threads(input_data_size);
+    size_t n_threads = decide_num_threads(input_data_size);
 
-    vector<size_t> thread_result_sizes(num_threads);
-    vector<size_t> thread_cum_sizes(num_threads + 1, 0);
+    vector<size_t> thread_result_sizes(n_threads);
+    vector<size_t> thread_cum_sizes(n_threads + 1, 0);
 
-    #pragma omp parallel num_threads(num_threads)
+    #pragma omp parallel num_threads(n_threads)
     {
+        size_t num_threads = n_threads;
         size_t size_per_thread = (input_data_size / num_threads) + (input_data_size % num_threads != 0);
         size_t tid = omp_get_thread_num();
         size_t *selected = new size_t[size_per_thread];

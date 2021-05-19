@@ -145,7 +145,6 @@ class Join : public Operator {
         void swap();
         /// Run
         void run() override;
-        void run_single();
 };
 
 class SelfJoin : public Operator {
