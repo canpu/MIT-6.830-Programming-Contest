@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <set>
+#include <boost/unordered_map.hpp>
 
 #include "relation.h"
 #include "parser.h"
@@ -115,7 +116,7 @@ class Join : public Operator {
         /// The join predicate info
         PredicateInfo p_info_;
 
-        using HT = std::unordered_multimap<uint64_t, size_t>;
+        using HT = boost::unordered_multimap<uint64_t, size_t>;
 
         /// Columns that have to be materialized
         std::unordered_set<SelectInfo> requested_columns_;
