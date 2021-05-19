@@ -81,36 +81,61 @@ std::string Joiner::join(QueryInfo &query) {
     std::unique_ptr<Operator>
         root = std::make_unique<Join>(move(left), move(right), firstJoin);
 
-    auto predicates_copy = query.predicates();
-    for (unsigned i = 1; i < predicates_copy.size(); ++i) {
-        auto &p_info = predicates_copy[i];
-        auto &left_info = p_info.left;
-        auto &right_info = p_info.right;
+    std::vector<PredicateInfo> predicates_new;
+    std::vector<PredicateInfo> predicates_empty;
+    std::vector<PredicateInfo> predicates_old;
+    for (size_t i = 1; i < query.predicates().size(); ++i)
+        predicates_new.push_back(query.predicates()[i]);
 
-        switch (analyzeInputOfJoin(used_relations, left_info, right_info)) {
-            case QueryGraphProvides::Left:left = move(root);
-                right = addScan(used_relations, right_info, query);
-                root = std::make_unique<Join>(move(left), move(right), p_info);
-                break;
-            case QueryGraphProvides::Right:
-                left = addScan(used_relations, left_info, query);
-                right = move(root);
-                root = std::make_unique<Join>(move(left), move(right), p_info);
-                break;
-            case QueryGraphProvides::Both:
-                // All relations of this join are already used somewhere else in the
-                // query. Thus, we have either a cycle in our join graph or more than
-                // one join predicate per join.
+
+    while (predicates_new.size() > 0) {
+        predicates_old = predicates_new;
+        predicates_new = predicates_empty;
+        bool found_self_join = false;
+        for (size_t i = 0; i < predicates_old.size(); ++i) {
+            auto &p_info = predicates_old[i];
+            auto &left_info = p_info.left;
+            auto &right_info = p_info.right;
+            if (analyzeInputOfJoin(used_relations, left_info, right_info) == QueryGraphProvides::Both) {
                 root = std::make_unique<SelfJoin>(move(root), p_info);
-                break;
-            case QueryGraphProvides::None:
-                // Process this predicate later when we can connect it to the other
-                // joins. We never have cross products.
-                predicates_copy.push_back(p_info);
-                break;
-        };
-    }
+                found_self_join = true;
+            } else
+                predicates_new.push_back(p_info);
+        }
+        if (!found_self_join) {
+            predicates_old = predicates_new;
+            predicates_new = predicates_empty;
+            for (unsigned i = 0; i < predicates_old.size(); ++i) {
+                auto &p_info = predicates_old[i];
+                auto &left_info = p_info.left;
+                auto &right_info = p_info.right;
 
+                switch (analyzeInputOfJoin(used_relations, left_info, right_info)) {
+                    case QueryGraphProvides::Left:left = move(root);
+                        right = addScan(used_relations, right_info, query);
+                        root = std::make_unique<Join>(move(left), move(right), p_info);
+                        break;
+                    case QueryGraphProvides::Right:
+                        left = addScan(used_relations, left_info, query);
+                        right = move(root);
+                        root = std::make_unique<Join>(move(left), move(right), p_info);
+                        break;
+                    case QueryGraphProvides::Both:
+                        // All relations of this join are already used somewhere else in the
+                        // query. Thus, we have either a cycle in our join graph or more than
+                        // one join predicate per join.
+                        root = std::make_unique<SelfJoin>(move(root), p_info);
+                        break;
+                    case QueryGraphProvides::None:
+                        // Process this predicate later when we can connect it to the other
+                        // joins. We never have cross products.
+                        predicates_new.push_back(p_info);
+                        break;
+                };
+            }
+        }
+    }
+    
     Checksum checksum(move(root), query.selections());
     checksum.run();
 
