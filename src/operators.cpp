@@ -324,8 +324,8 @@ void Join::run() {
         tind.resize(num_threads);
         tquot.resize(num_threads);
         for (size_t i = 0; i < num_threads; ++i) {
-            tind[i].reserve(left_size_per_thread / num_threads * RESERVE_FACTOR);
-            tquot[i].reserve(left_size_per_thread / num_threads * RESERVE_FACTOR);
+            tind[i].reserve(left_size_per_thread * RESERVE_FACTOR / num_threads);
+            tquot[i].reserve(left_size_per_thread * RESERVE_FACTOR / num_threads);
         }
 
         for (size_t i = start; i < end; ++i) {
@@ -363,7 +363,7 @@ void Join::run() {
         thread_left_selected[thread_id].reserve(right_size_per_thread * RESERVE_FACTOR);
         thread_right_selected[thread_id].reserve(right_size_per_thread * RESERVE_FACTOR);
         size_t start_ind = thread_id * right_size_per_thread;
-        size_t end_ind = (thread_id + 1) * right_size_per_thread;
+        size_t end_ind = start_ind + right_size_per_thread;
         if (end_ind > right_input_size) end_ind = right_input_size;
 
         for (size_t right_id = start_ind; right_id < end_ind; ++right_id) {
