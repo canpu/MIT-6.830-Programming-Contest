@@ -12,7 +12,6 @@
 
 #include "relation.h"
 #include "parser.h"
-#include "hopscotch_map.h"
 
 namespace std {
     /// Simple hash function to enable use with unordered_map
