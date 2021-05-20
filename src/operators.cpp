@@ -8,16 +8,18 @@
 #include <iostream>
 
 #define NUM_THREADS 48
-#define DEPTH_WORTHY_PARALLELIZATION 6
+#define DEPTH_WORTHY_PARALLELIZATION 2
 #define RESERVE_FACTOR 2
-#define CHUNCK_SIZE 600
+#define CHUNCK_SIZE 500
 
 using namespace::std;
 
 size_t decide_num_threads(size_t data_size) {
     if (data_size >= NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION)
         return NUM_THREADS;
-    else if (data_size >= NUM_THREADS)
+    else if (data_size >= 24 * DEPTH_WORTHY_PARALLELIZATION)
+        return 24;
+    else if (data_size >= 12 * DEPTH_WORTHY_PARALLELIZATION)
         return 12;
     else
         return 1;
