@@ -14,16 +14,6 @@
 
 using namespace::std;
 
-double *join_prep_time = get_join_prep_time(),
-       *join_build_time = get_join_build_time(),
-       *join_probing_time = get_join_probing_time(),
-       *join_materialization_time = get_join_materialization_time(),
-       *self_join_prep_time = get_self_join_prep_time(),
-       *self_join_probing_time = get_self_join_probing_time(),
-       *self_join_materialization_time = get_self_join_materialization_time(),
-       *check_sum_time = get_checksum_time(),
-       *filter_time = get_filter_time();
-
 size_t decide_num_threads(size_t data_size) {
     if (data_size >= NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION)
         return NUM_THREADS;
@@ -107,7 +97,6 @@ bool FilterScan::applyFilter(uint64_t i, FilterInfo &f) {
 
 // Run
 void FilterScan::run() {
-    double begin_time = omp_get_wtime(), end_time;
 
     size_t input_data_size = relation_.size();
     size_t num_cols = input_data_.size();
@@ -174,8 +163,6 @@ void FilterScan::run() {
         }
     }
 
-    end_time = omp_get_wtime();
-    *filter_time += (end_time - begin_time);
 }
 
 // Require a column and add it to results
@@ -228,7 +215,6 @@ void Join::run() {
     right_->run();
 
     // Preparation phase
-    double begin_time = omp_get_wtime(), end_time;
     this->swap();
 
     if (left_->result_size() < CHUNCK_SIZE) {
@@ -267,13 +253,6 @@ void Join::run() {
             for (size_t i = 0; i < left_input_size; ++i)
                 map.emplace(left_key_column[i], i);
 
-            #pragma omp single
-            {
-                end_time = omp_get_wtime();
-                *join_build_time += (end_time - begin_time);
-                begin_time = omp_get_wtime();
-            }
-
             #pragma omp barrier
 
             // Probe phase
@@ -309,10 +288,6 @@ void Join::run() {
                     cum_size[t+1] = cum_size[t] + thread_sizes[t];
                 }
 
-                end_time = omp_get_wtime();
-                *join_probing_time += (end_time - begin_time);
-                begin_time = omp_get_wtime();
-
                 for (size_t c = 0; c < tot_num_cols; ++c)
                     tmp_results_[c].reserve(result_size_);
             }
@@ -330,9 +305,6 @@ void Join::run() {
                 ++ind;
             }
         }
-
-        end_time = omp_get_wtime();
-        *join_materialization_time += (end_time - begin_time);
 
         return;
 
@@ -356,10 +328,6 @@ void Join::run() {
     vector<size_t> thread_sizes(n_threads);
     vector<size_t> thread_cum_sizes = vector<size_t> (n_threads + 1, 0);
     result_size_ = 0;
-
-    end_time = omp_get_wtime();
-    *join_prep_time += (end_time - begin_time);
-    begin_time = omp_get_wtime();
 
     // Build phase
     vector<vector<vector<size_t>>> indices(n_threads); // first index for partition, second index for rem
@@ -409,13 +377,7 @@ void Join::run() {
             }
         }
 
-        #pragma omp single
-        {
-            end_time = omp_get_wtime();
-            *join_build_time += (end_time - begin_time);
-            begin_time = omp_get_wtime();
-        }
-
+        #pragma omp barrier
         // Probe phase
         // Partition
         for (size_t i = 0; i < num_threads; ++i) {
@@ -462,9 +424,6 @@ void Join::run() {
                 result_size_ += thread_sizes[t];
                 thread_cum_sizes[t+1] = thread_cum_sizes[t] + thread_sizes[t];
             }
-            end_time = omp_get_wtime();
-            *join_probing_time += (end_time - begin_time);
-            begin_time = omp_get_wtime();
 
             // Materialization phase
             for (size_t c = 0; c < tot_num_cols; ++c) {
@@ -487,9 +446,6 @@ void Join::run() {
             cur_ind++;
         }
     }
-
-    end_time = omp_get_wtime();
-    *join_materialization_time += (end_time - begin_time);
 }
 
 // Require a column and add it to results
@@ -511,8 +467,6 @@ void SelfJoin::run() {
     input_->require(p_info_.right);
     input_->run();
 
-    double begin_time = omp_get_wtime(), end_time;
-
     input_data_ = input_->getResults();
 
     for (auto &iu : required_IUs_) {
@@ -528,10 +482,6 @@ void SelfJoin::run() {
     auto left_col = input_data_[left_col_id];
     auto right_col = input_data_[right_col_id];
 
-    end_time = omp_get_wtime();
-    *self_join_prep_time += (end_time - begin_time);
-    begin_time = omp_get_wtime();
-
     // Single-Thread
     if (input_data_size < NUM_THREADS * DEPTH_WORTHY_PARALLELIZATION) {
         // Probing
@@ -544,10 +494,6 @@ void SelfJoin::run() {
                 result_size_++;
             }
         }
-
-        end_time = omp_get_wtime();
-        *self_join_probing_time += (end_time - begin_time);
-        begin_time = omp_get_wtime();
 
         // Materialization
         size_t **col_ptrs = new size_t* [tot_num_cols];
@@ -605,10 +551,6 @@ void SelfJoin::run() {
                 result_size_ += thread_result_sizes[t];
             }
 
-            end_time = omp_get_wtime();
-            *self_join_probing_time += (end_time - begin_time);
-            begin_time = omp_get_wtime();
-
             // Merge
             for (size_t c = 0; c < tot_num_cols; ++c) {
                 tmp_results_[c].reserve(result_size_);
@@ -634,9 +576,6 @@ void SelfJoin::run() {
 
     }
 
-    end_time = omp_get_wtime();
-    *self_join_materialization_time += (end_time - begin_time);
-
 }
 
 // Run
@@ -645,8 +584,6 @@ void Checksum::run() {
         input_->require(sInfo);
     }
     input_->run();
-
-    double begin_time = omp_get_wtime(), end_time;
 
     auto results = input_->getResults();
     result_size_ = input_->result_size();
@@ -671,7 +608,4 @@ void Checksum::run() {
             check_sums_[old_num_cols + c] = (sum);
         }
     }
-
-    end_time = omp_get_wtime();
-    *check_sum_time += (end_time - begin_time);
 }
